@@ -2,8 +2,9 @@ import slack
 import os 
 from pathlib import Path
 from dotenv import load_dotenv
-from flask import Flask
+from flask import Flask,request,Response
 from slackeventsapi import SlackEventAdapter
+import pandas as pd
 
 env_path = Path('.') / '.env' # Path to .env file
 load_dotenv(dotenv_path=env_path) # Load the .env file
@@ -12,39 +13,75 @@ slack_event_adapter = SlackEventAdapter(os.environ['SIGNING_SECRET'],'/slack/eve
 client = slack.WebClient(token=os.environ['SLACK_TOKEN']) # Create a slack client
 BOT_ID = client.api_call("auth.test")['user_id'] # Get the bot id
 
+def get_channels():
+    
+    all_channels_response = client.conversations_list(types="public_channel")
+    if all_channels_response['ok']:
+        all_channels = all_channels_response['channels']
+        #print(f"Lista de canales públicos: {all_channels}")
+        channel_info_list = []
+        for channel in all_channels:
+            channel_info = {
+                'name_normalized': channel['name_normalized'],
+                'id': channel['id']
+            }
+            channel_info_list.append(channel_info)
+        
+        return channel_info_list
+    else:
+        print(f"Error getting channels: {all_channels_response['error']}")
+        return []  # Return empty list on error
+
+
+channels = get_channels()
+print(channels)
+
 @slack_event_adapter.on('message')
 def message(payload):
     event = payload.get('event',{})
     channel_id = event.get('channel')
     user_id = event.get('user')
     text = event.get('text') # en este texto se encuentra el mensaje que el usuario envió
-    info = client.team_info() # Obtener información del slack en general 
-
+    #info = client.team_info() # Obtener información del slack en general 
+    conversation_history = []
+    mensajes = []
+     # Ensure it's a message from a user (not the bot itself) and avoid sensitive information
     if BOT_ID != user_id:
-        client.chat_postMessage(channel=channel_id,text=text)
-        #autenticated_user = client.oauth_v2_access(client_id=os.environ['CLIENT_ID'], client_secret=os.environ['CLIENT_SECRET'],code=os.environ['SLACK_TOKEN']) 
-        all_user_list = client.admin_users_list(limit=40, team_id=['T070FSWLE2H'])  
-        print(f"Mensaje recibido: {text} ")
-        print(f"Autenticador: {all_user_list} ")
-        
-"""
-@slack_event_adapter.on('message_metadata_posted')
-def message_metadata_posted(payload):
-    event = payload.get('event', {})
-    channel_id = event.get('channel')
-    user_id = event.get('user')
-    # Verificar si el mensaje es del bot o si el mensaje no tiene un canal
-    if not channel_id or BOT_ID == user_id:
-        return
-    autenticated_user = client.oauth_v2_access(client_id=os.environ['CLIENT_ID'], client_secret=os.environ['CLIENT_SECRET'])
-    all_user_list = client.admin_users_list(limit=40)
-    all_channels_response = client.admin_users_list(types="public_channel")
-    if all_user_list['ok']:
-        all_channels = all_user_list['users']
-        print(f"Lista de canales públicos: {all_channels}") 
+        # Iterate over each channel and get messages
+        for channel_info in channels:
+            channel_id = channel_info['id']
+            channel_name = channel_info['name_normalized']  # Obtener el nombre del canal
+            # Use conversations.history API call to get channel messages
+            result = client.conversations_history(channel=channel_id)
+            if result['ok']:
+                conversation_history = result["messages"]
+                mensajes = []
+                for mensaje in conversation_history:
+                    if 'user' in mensaje:
+                        user = mensaje['user']
+                        text = mensaje['text']
+                        ts = mensaje['ts']
+                    
+                    # Agregar el nombre del canal al mensaje
+                        mensajes.append({'channel_name': channel_name, 'user': user, 'text': text, 'ts': ts})
+                    else:
+                        print("Mensaje no contiene información de usuario:", mensaje)                        
+                # Save messages to CSV
+                    df = pd.DataFrame(mensajes)
+                    df.to_csv(f'app/slack_config/Data_messages/channel_{channel_id}_messages.csv', index=False)
+            else:
+                print(f"Error getting messages for channel {channel_name}: {result['error']}")
 
-    # Imprimir el mensaje en la consola  
-"""
+
+@app.route('/sentiment',methods=['Post'])
+def sentiment():
+    data = request.form
+    user_name = data.get('user_name')
+    print(f"Received a message from user {user_name}")
+    print(data)
+    return Response(),200   
+
+     
 if __name__ == '__main__':
     app.run(debug=True) # Run the app in debug mode
     
