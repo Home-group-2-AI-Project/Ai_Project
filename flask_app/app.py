@@ -21,7 +21,7 @@ openai_connection = OpenAIConnection()
 
 
 @app.command("/chatgpt")
-def command(ack, say, command):
+def command_chat_gpt(ack, say, command):
     # Acknowledge the command right away
     ack()
 
@@ -32,6 +32,61 @@ def command(ack, say, command):
 
     # Post the user's message and the response back to the same channel
     say(f"*Respuesta:* {reply}\n----------------")
+
+
+@app.command("/usuario-canal")
+def command_resumen_sentimientos_usuario_canal(ack, say, command):
+
+    ack()
+
+    text = command['text']
+    usuario, canal = text.split(" ")
+
+    pass
+
+
+@app.command("/usuario-general")
+def command_resumen_sentimientos_usuario_general(ack, say, command):
+
+    ack()
+
+    text = command['text']
+    usuario = text
+
+    pass
+
+
+@app.command("/canal")
+def command_resumen_sentimientos_canal(ack, say, command):
+
+    ack()
+
+    text = command['text']
+    canal = text
+
+    pass
+
+
+@app.command("/top-canal")
+def resumen_top_canal(ack, say, command):
+
+    ack()
+
+    text = command['text']
+    canal = text
+
+    pass
+
+
+@app.command("/resumen")
+def resumen_contexto_canal(ack, say, command):
+
+    ack()
+
+    text = command['text']
+    canal, numero_mensajes = text.split(" ")
+
+    pass
 
 
 @app.event("app_home_opened")
