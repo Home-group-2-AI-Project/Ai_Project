@@ -105,7 +105,7 @@ class OpenAIConnection:
                 {"role": "system", "content": f"Eres un bot de slack y vamos a analizar los usuarios que mas representan ciertos sentimientos en un el canal {canal}."},
                 {"role": "user", "content": f"Dame un resumen con los resultados que te voy a proporcionar sobre los sentimientos de los usuarios en el canal {canal}."},
                 {"role": "user", "content": f"Los resultados son los siguientes: {resultados}"},
-                {"role": "user", "content": f"Dame una respuesta bien estructurada y saca tus conclusiones con los datos proporcionados sobre los usuarios en el canal. Recuerda que los resultados se obtienen despues de pasar por un modelo de clasificacion de sentimientos. Brinda un mensaje a cada usuario que represente el sentimiento que mas predomina en sus mensajes."}s
+                {"role": "user", "content": f"Dame una respuesta bien estructurada y saca tus conclusiones con los datos proporcionados sobre los usuarios en el canal. Recuerda que los resultados se obtienen despues de pasar por un modelo de clasificacion de sentimientos. Brinda un mensaje a cada usuario que represente el sentimiento que mas predomina en sus mensajes."}
             ]
         )
 
