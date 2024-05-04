@@ -1,6 +1,6 @@
 # Ignorar archivo .env
 .env
-
+ngrok.exe
 # Ignorar archivo BBDD.xlsx
 BBDD.xlsx
 
