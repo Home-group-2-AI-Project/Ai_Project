@@ -41,6 +41,12 @@ def handle_message(event, say):
     text = event["text"]
     ts = event["event_ts"]
 
+    # ckeck reply
+    if 'thread_ts' in event and event['thread_ts'] != ts:
+        print('Este mensaje es una respuesta en un hilo.')
+    else:
+        print('Este mensaje no es una respuesta en un hilo.')
+
     if app.client.auth_test()["user_id"] != user_id:
         print(f'in channel {channel_id}')
         try:
