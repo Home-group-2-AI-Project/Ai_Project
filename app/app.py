@@ -29,6 +29,7 @@ channels = get_channels(app)
 # app events slack bolt --------------------------------------------------------
 ################################################################################
 
+
 @app.event("message")
 def handle_message(event, say):
     channel_id = event["channel"]
@@ -42,21 +43,23 @@ def handle_message(event, say):
     if app.client.auth_test()["user_id"] != user_id:
         print(f'in channel {channel_id}')
         try:
-            directory = 'app/slack_config/Data_messages'
+            directory = 'app/slack_utils/data_messages'
             if not os.path.exists(directory):
                 os.makedirs(directory)
-            csv_file_path = f'app/slack_config/Data_messages/channel_{channel_id}_messages.csv'
-            existing_data = pd.read_csv(csv_file_path)         
+            csv_file_path = f'app/slack_utils/data_messages/channel_{channel_id}_messages.csv'
+            existing_data = pd.read_csv(csv_file_path)
             if ('subtype' not in event or event['subtype'] != 'channel_join') and 'bot_id' not in event:
-                new_row = pd.DataFrame([{'channel': channel_id,'user': user_id, 'text': text, 'ts': ts}])
-                updated_data = pd.concat([new_row,existing_data], ignore_index=True, sort=False)
+                new_row = pd.DataFrame(
+                    [{'channel': channel_id, 'user': user_id, 'text': text, 'ts': ts}])
+                updated_data = pd.concat(
+                    [new_row, existing_data], ignore_index=True, sort=False)
                 updated_data.to_csv(csv_file_path, index=False)
             return
         except Exception as e:
             print(f"Error opening file for channel {channel_id}: {e}")
             print(f"Getting messages for channel {channel_id}")
             result = app.client.conversations_history(channel=channel_id)
-        
+
             if result['ok']:
                 conversation_history = result["messages"]
                 mensajes = []
@@ -69,18 +72,23 @@ def handle_message(event, say):
                         text = re.sub(r'http\S+|www.\S+', '', text)
                         text = re.sub(r':[a-zA-Z0-9_+-]*:', '', text)
                         text = re.sub(r'\W+', ' ', text)
-                        mensajes.append({'channel': channel_id, 'user': user, 'text': text, 'ts': ts})
-                        app.client.chat_postMessage(channel=channel_id, text=f"Mensaje guardado: {text}")
+                        mensajes.append(
+                            {'channel': channel_id, 'user': user, 'text': text, 'ts': ts})
+                        app.client.chat_postMessage(
+                            channel=channel_id, text=f"Mensaje guardado: {text}")
                     else:
-                        print("Mensaje no contiene información de usuario:", mensaje)                        
+                        print("Mensaje no contiene información de usuario:", mensaje)
                 df = pd.DataFrame(mensajes)
-                df.to_csv(f'app/slack_config/Data_messages/channel_{channel_id}_messages.csv', index=False)
+                df.to_csv(
+                    f'app/slack_utils/data_messages/channel_{channel_id}_messages.csv', index=False)
             else:
-                print(f"Error getting messages for channel {channel_id}: {result['error']}")
+                print(
+                    f"Error getting messages for channel {channel_id}: {result['error']}")
+
 
 @app.event("app_home_opened")
 def update_home_tab(client, event, logger):
-    
+
     try:
         # views.publish is the method that your app uses to push a view to the Home tab
         client.views_publish(
@@ -201,17 +209,18 @@ def update_home_tab(client, event, logger):
                             ],
                             "action_id": "static_select-action"
                         }
-                    }                
+                    }
                 ]
             }
         )
 
     except Exception as e:
         logger.error(f"Error publishing home tab: {e}")
-        
+
 ################################################################################
 # app commands slack bolt ------------------------------------------------------
 ################################################################################
+
 
 @app.command("/chatgpt")
 def command_chat_gpt(ack, say, command):
@@ -285,180 +294,193 @@ def resumen_contexto_canal(ack, say, command):
 # app actions slack bolt -------------------------------------------------------
 ################################################################################
 
+
 @app.action("static_select-action")
 def static_select(ack, body, client):
     ack()
     selected_option = body["actions"][0]["selected_option"]["value"]
     print(f"Opción seleccionada: {selected_option}")
     if selected_option == "value-0":
-        client.views_open(trigger_id=body["trigger_id"], 
-                         view={
-    "title": {
-		"type": "plain_text",
-		"text": "Opcion 1"
-	},
-	"submit": {
-		"type": "plain_text",
-		"text": "Submit"
-	},
-	"blocks": [
-        {
-			"type": "section",
-			"text": {
-				"type": "mrkdwn",
-				"text": " Aqui podras obtener un resumen de los sentimientos de un usuario en cierto canal *se tendran en cuenta todos los mensajes que el usuario haya enviado*."
-			}
-		},
-		{
-			"type": "actions",
-			"elements": [
-				{
-					"type": "channels_select",
-					"placeholder": {
-						"type": "plain_text",
-						"text": "Selecciona un canal"
-					},
-					"action_id": "actionId-0"
-				},
-				{
-					"type": "users_select",
-					"placeholder": {
-						"type": "plain_text",
-						"text": "Selecciona un usuario"
-					},
-					"action_id": "actionId-1"
-				}
-			]
-		}
-	],
-	"type": "modal",
-    "callback_id": "option_one"
-    })           
-        
-        client.chat_postMessage(channel=body["user"]["id"], text="Seleccionaste la opción 1")
-        
+        client.views_open(trigger_id=body["trigger_id"],
+                          view={
+            "title": {
+                "type": "plain_text",
+                "text": "Opcion 1"
+            },
+            "submit": {
+                "type": "plain_text",
+                "text": "Submit"
+            },
+            "blocks": [
+                {
+                    "type": "section",
+                    "text": {
+                        "type": "mrkdwn",
+                        "text": " Aqui podras obtener un resumen de los sentimientos de un usuario en cierto canal *se tendran en cuenta todos los mensajes que el usuario haya enviado*."
+                    }
+                },
+                {
+                    "type": "actions",
+                    "elements": [
+                        {
+                            "type": "channels_select",
+                            "placeholder": {
+                                "type": "plain_text",
+                                "text": "Selecciona un canal"
+                            },
+                            "action_id": "actionId-0"
+                        },
+                        {
+                            "type": "users_select",
+                            "placeholder": {
+                                "type": "plain_text",
+                                        "text": "Selecciona un usuario"
+                            },
+                            "action_id": "actionId-1"
+                        }
+                    ]
+                }
+            ],
+            "type": "modal",
+            "callback_id": "option_one"
+        })
+
+        client.chat_postMessage(
+            channel=body["user"]["id"], text="Seleccionaste la opción 1")
+
     elif selected_option == "value-1":
-        client.views_open(trigger_id=body["trigger_id"], 
-                         view={
-    "title": {
-		"type": "plain_text",
-		"text": "Opcion 2"
-	},
-	"submit": {
-		"type": "plain_text",
-		"text": "Submit"
-	},
-	"blocks": [
-        {
-			"type": "section",
-			"text": {
-				"type": "mrkdwn",
-				"text": " Aqui podras obtener un resumen de los sentimientos de un usuario en todos los canales *se tendran en cuenta todos los mensajes que el usuario haya enviado*."
-			}
-		},
-		{
-			"type": "actions",
-			"elements": [
-				{
-					"type": "channels_select",
-					"placeholder": {
-						"type": "plain_text",
-						"text": "Selecciona un canal"
-					},
-					"action_id": "actionId-3"
-				}
-			]
-		}
-	],
-	"type": "modal",
-    "callback_id": "option_two",
-    })  
-        
-        client.chat_postMessage(channel=body["user"]["id"], text="Seleccionaste la opción 2")
+        client.views_open(trigger_id=body["trigger_id"],
+                          view={
+            "title": {
+                "type": "plain_text",
+                "text": "Opcion 2"
+            },
+            "submit": {
+                "type": "plain_text",
+                "text": "Submit"
+            },
+            "blocks": [
+                {
+                    "type": "section",
+                    "text": {
+                        "type": "mrkdwn",
+                        "text": " Aqui podras obtener un resumen de los sentimientos de un usuario en todos los canales *se tendran en cuenta todos los mensajes que el usuario haya enviado*."
+                    }
+                },
+                {
+                    "type": "actions",
+                    "elements": [
+                        {
+                            "type": "channels_select",
+                            "placeholder": {
+                                "type": "plain_text",
+                                "text": "Selecciona un canal"
+                            },
+                            "action_id": "actionId-3"
+                        }
+                    ]
+                }
+            ],
+            "type": "modal",
+            "callback_id": "option_two",
+        })
+
+        client.chat_postMessage(
+            channel=body["user"]["id"], text="Seleccionaste la opción 2")
     elif selected_option == "value-2":
-        client.views_open(trigger_id=body["trigger_id"], 
-                         view={
-    "title": {
-		"type": "plain_text",
-		"text": "Opcion 3"
-	},
-	"submit": {
-		"type": "plain_text",
-		"text": "Submit"
-	},
-	"blocks": [
-        {
-			"type": "section",
-			"text": {
-				"type": "mrkdwn",
-				"text": " Aqui podras obtener un resumen de los sentimientos en todos los canales *se tendran en cuenta en limite de 100 mensajes por canal*."
-			}
-		}
-	],
-	"type": "modal",
-    "callback_id": "option_three",
-    })  
-        client.chat_postMessage(channel=body["user"]["id"], text="Seleccionaste la opción 3")
+        client.views_open(trigger_id=body["trigger_id"],
+                          view={
+            "title": {
+                "type": "plain_text",
+                "text": "Opcion 3"
+            },
+            "submit": {
+                "type": "plain_text",
+                "text": "Submit"
+            },
+            "blocks": [
+                {
+                    "type": "section",
+                    "text": {
+                        "type": "mrkdwn",
+                        "text": " Aqui podras obtener un resumen de los sentimientos en todos los canales *se tendran en cuenta en limite de 100 mensajes por canal*."
+                    }
+                }
+            ],
+            "type": "modal",
+            "callback_id": "option_three",
+        })
+        client.chat_postMessage(
+            channel=body["user"]["id"], text="Seleccionaste la opción 3")
     elif selected_option == "value-3":
-        client.views_open(trigger_id=body["trigger_id"], 
-                         view={
-    "title": {
-		"type": "plain_text",
-		"text": "Opcion 4"
-	},
-	"submit": {
-		"type": "plain_text",
-		"text": "Submit"
-	},
-	"blocks": [
-        {
-			"type": "section",
-			"text": {
-				"type": "mrkdwn",
-				"text": " Aqui podras obtener un resumen general de los sentimientos de un canal en especifico. *se tendran en cuenta 200 mensajes para hacer este analisis*."
-			}
-		},
-		{
-			"type": "actions",
-			"elements": [
-				{
-					"type": "channels_select",
-					"placeholder": {
-						"type": "plain_text",
-						"text": "Selecciona un canal"
-					},
-					"action_id": "actionId-4"
-				}
-			]
-		}
-	],
-	"type": "modal",
-    "callback_id": "option_four",
-    })  
-        client.chat_postMessage(channel=body["user"]["id"], text="Seleccionaste la opción 4")
+        client.views_open(trigger_id=body["trigger_id"],
+                          view={
+            "title": {
+                "type": "plain_text",
+                "text": "Opcion 4"
+            },
+            "submit": {
+                "type": "plain_text",
+                "text": "Submit"
+            },
+            "blocks": [
+                {
+                    "type": "section",
+                    "text": {
+                        "type": "mrkdwn",
+                        "text": " Aqui podras obtener un resumen general de los sentimientos de un canal en especifico. *se tendran en cuenta 200 mensajes para hacer este analisis*."
+                    }
+                },
+                {
+                    "type": "actions",
+                    "elements": [
+                        {
+                            "type": "channels_select",
+                            "placeholder": {
+                                "type": "plain_text",
+                                "text": "Selecciona un canal"
+                            },
+                            "action_id": "actionId-4"
+                        }
+                    ]
+                }
+            ],
+            "type": "modal",
+            "callback_id": "option_four",
+        })
+        client.chat_postMessage(
+            channel=body["user"]["id"], text="Seleccionaste la opción 4")
     else:
-        client.chat_postMessage(channel=body["user"]["id"], text="No se seleccionó ninguna opción")
-        
+        client.chat_postMessage(
+            channel=body["user"]["id"], text="No se seleccionó ninguna opción")
+
+
 @app.action("actionId-0")
 def handle_some_action_zero(ack, body):
     ack()
-    selected_channel = body["view"]["state"]["values"]["DIUt4"]["actionId-0"]["selected_channel"] #canal que el usuario ha seleccionado
+    # canal que el usuario ha seleccionado
+    selected_channel = body["view"]["state"]["values"]["DIUt4"]["actionId-0"]["selected_channel"]
     print(selected_channel)
     return selected_channel
+
 
 @app.action("actionId-1")
 def handle_some_action_one(ack, body):
     ack()
-    selected_user = body["view"]["state"]["values"]["DIUt4"]["actionId-1"]["selected_user"] #usuario que el usuario ha seleccionado  
+    # usuario que el usuario ha seleccionado
+    selected_user = body["view"]["state"]["values"]["DIUt4"]["actionId-1"]["selected_user"]
     print(selected_user)
     return selected_user
+
 
 @app.action("actionId-3")
 def handle_some_action_option_two(ack, body):
     ack()
-    selected_channel_two = body["actions"][0]["selected_channel"] #canal que el usuario ha seleccionado
+    # canal que el usuario ha seleccionado
+    selected_channel_two = body["actions"][0]["selected_channel"]
     print(selected_channel_two)
     return selected_channel_two
+
 
 @app.action("actionId-4")
 def handle_some_action_option_four(ack, body):
@@ -471,40 +493,50 @@ def handle_some_action_option_four(ack, body):
 # app views slack bolt ---------------------------------------------------------
 ################################################################################
 
+
 @app.view("option_one")
 def handle_view_submission_events_option_one(ack, body):
     ack()
     print(body)
-    information_options = handle_some_action_zero(ack, body), handle_some_action_one(ack, body) #obtenemos los datos del canal y del usuario y lo guardamos en una variable la cual se retornara para ser enviada al modelo IA
-    user_id = body["user"]["id"]   #obtenemos el id del usuario que ha enviado el formulario
+    # obtenemos los datos del canal y del usuario y lo guardamos en una variable la cual se retornara para ser enviada al modelo IA
+    information_options = handle_some_action_zero(
+        ack, body), handle_some_action_one(ack, body)
+    # obtenemos el id del usuario que ha enviado el formulario
+    user_id = body["user"]["id"]
     print(information_options)
     print(user_id)
     return information_options, user_id
-   
+
+
 @app.view("option_two")
 def handle_view_submission_events_option_two(ack, body):
     ack()
     information_options_two = body["view"]["state"]["values"]["esL3U"]["actionId-3"]["selected_channel"]
     print(f'Canal seleccionado: {information_options_two}')
-    user_id = body["user"]["id"]   #obtenemos el id del usuario que ha enviado el formulario
+    # obtenemos el id del usuario que ha enviado el formulario
+    user_id = body["user"]["id"]
     print(user_id)
     return information_options_two, user_id
+
 
 @app.view("option_three")
 def handle_view_submission_events_option_three(ack, body):
     ack()
     option = 3
-    user_id = body["user"]["id"]   #obtenemos el id del usuario que ha enviado el formulario
+    # obtenemos el id del usuario que ha enviado el formulario
+    user_id = body["user"]["id"]
     print(user_id)
-    
+
     return option, user_id
+
 
 @app.view("option_four")
 def handle_view_submission_events_option_four(ack, body):
     ack()
     information_options_four = handle_some_action_option_four(ack, body)
     print(f'Canal seleccionado: {information_options_four}')
-    user_id = body["user"]["id"]   #obtenemos el id del usuario que ha enviado el formulario
+    # obtenemos el id del usuario que ha enviado el formulario
+    user_id = body["user"]["id"]
     print(user_id)
     return information_options_four, user_id
 
@@ -516,7 +548,8 @@ def handle_view_submission_events_option_four(ack, body):
 flask_app = Flask(__name__)
 handler = SlackRequestHandler(app)
 
-@flask_app.route('/sentiment',methods=['Post'])
+
+@flask_app.route('/sentiment', methods=['Post'])
 def sentiment(client):
     data = request.form
     user_name = data.get('user_name')
@@ -525,9 +558,11 @@ def sentiment(client):
     print(data)
     return "Hola, ¿en qué te puedo ayudar?", 200
 
+
 @flask_app.route('/slack/open_modal', methods=['POST'])
 def modals():
     return handler.handle(request)
+
 
 @flask_app.route("/slack/events", methods=["POST"])
 def slack_events():
