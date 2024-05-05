@@ -13,6 +13,9 @@ app = App(
     signing_secret=os.environ['SIGNING_SECRET']
 )
 
+#variables globales para obtener los datos de los canales los usuarios y otros
+
+
 def get_channels(app):
     try:
         result = app.client.conversations_list(types="public_channel")
@@ -128,14 +131,14 @@ def update_home_tab(client, event, logger):
                         "type": "section",
                         "text": {
                             "type": "plain_text",
-                            "text": " :one: En esta seccion, podras obtener un resumen de los sentimientos de un usuario en cierto canal(se tendran en cuenta todos los mensajes que el usuario haya enviado)."
+                            "text": " :one: En esta opción, podras obtener un resumen de los sentimientos de un usuario en cierto canal(se tendran en cuenta todos los mensajes que el usuario haya enviado)."
                         }
                     },
                     {
                         "type": "section",
                         "text": {
                             "type": "mrkdwn",
-                            "text": ":two: En esta seccion, podras obtener un resumen de los sentimientos de un usuario en todos los canales(se tendran en cuenta todos los mensajes que el usuario haya enviado)."
+                            "text": ":two: En esta opción, podras obtener un resumen de los sentimientos de un usuario en todos los canales(se tendran en cuenta todos los mensajes que el usuario haya enviado)."
                         }
                     },
                     {
@@ -145,7 +148,7 @@ def update_home_tab(client, event, logger):
                         "type": "section",
                         "text": {
                             "type": "mrkdwn",
-                            "text": ":three: En esta seccion, podras obtener un resumen de los sentimientos de un usuario todos los canales."
+                            "text": ":three: En esta opción, podras obtener un resumen de los sentimientos de todos los canales en general."
                         }
                     },
                     {
@@ -198,7 +201,7 @@ def update_home_tab(client, event, logger):
                                 {
                                     "text": {
                                         "type": "plain_text",
-                                        "text": "Opcion :four"
+                                        "text": "Opcion :four:"
                                     },
                                     "value": "value-3"
                                 }
@@ -280,24 +283,179 @@ def static_select(ack, body, client):
 			]
 		}
 	],
-	"type": "modal"
-    })
-            
-            
+	"type": "modal",
+    "callback_id": "option_one"
+    })           
+        
         client.chat_postMessage(channel=body["user"]["id"], text="Seleccionaste la opción 1")
+        
     elif selected_option == "value-1":
+        client.views_open(trigger_id=body["trigger_id"], 
+                         view={
+    "title": {
+		"type": "plain_text",
+		"text": "Opcion 2"
+	},
+	"submit": {
+		"type": "plain_text",
+		"text": "Submit"
+	},
+	"blocks": [
+        {
+			"type": "section",
+			"text": {
+				"type": "mrkdwn",
+				"text": " Aqui podras obtener un resumen de los sentimientos de un usuario en todos los canales *se tendran en cuenta todos los mensajes que el usuario haya enviado*."
+			}
+		},
+		{
+			"type": "actions",
+			"elements": [
+				{
+					"type": "channels_select",
+					"placeholder": {
+						"type": "plain_text",
+						"text": "Selecciona un canal"
+					},
+					"action_id": "actionId-3"
+				}
+			]
+		}
+	],
+	"type": "modal",
+    "callback_id": "option_two",
+    })  
+        
         client.chat_postMessage(channel=body["user"]["id"], text="Seleccionaste la opción 2")
     elif selected_option == "value-2":
+        client.views_open(trigger_id=body["trigger_id"], 
+                         view={
+    "title": {
+		"type": "plain_text",
+		"text": "Opcion 3"
+	},
+	"submit": {
+		"type": "plain_text",
+		"text": "Submit"
+	},
+	"blocks": [
+        {
+			"type": "section",
+			"text": {
+				"type": "mrkdwn",
+				"text": " Aqui podras obtener un resumen de los sentimientos en todos los canales *se tendran en cuenta en limite de 100 mensajes por canal*."
+			}
+		}
+	],
+	"type": "modal",
+    "callback_id": "option_three",
+    })  
         client.chat_postMessage(channel=body["user"]["id"], text="Seleccionaste la opción 3")
     elif selected_option == "value-3":
+        client.views_open(trigger_id=body["trigger_id"], 
+                         view={
+    "title": {
+		"type": "plain_text",
+		"text": "Opcion 4"
+	},
+	"submit": {
+		"type": "plain_text",
+		"text": "Submit"
+	},
+	"blocks": [
+        {
+			"type": "section",
+			"text": {
+				"type": "mrkdwn",
+				"text": " Aqui podras obtener un resumen general de los sentimientos de un canal en especifico. *se tendran en cuenta 200 mensajes para hacer este analisis*."
+			}
+		},
+		{
+			"type": "actions",
+			"elements": [
+				{
+					"type": "channels_select",
+					"placeholder": {
+						"type": "plain_text",
+						"text": "Selecciona un canal"
+					},
+					"action_id": "actionId-4"
+				}
+			]
+		}
+	],
+	"type": "modal",
+    "callback_id": "option_four",
+    })  
         client.chat_postMessage(channel=body["user"]["id"], text="Seleccionaste la opción 4")
     else:
         client.chat_postMessage(channel=body["user"]["id"], text="No se seleccionó ninguna opción")
-@app.action("button-action")
-def button_click(ack, body, client):
+        
+@app.action("actionId-0")
+def handle_some_action_zero(ack, body):
     ack()
-    client.chat_postMessage(text = 'prueba') #esto imprime un mensaje, pero lo imprime en el chat del propio bot
+    selected_channel = body["view"]["state"]["values"]["DIUt4"]["actionId-0"]["selected_channel"] #canal que el usuario ha seleccionado
+    print(selected_channel)
+    return selected_channel
+
+@app.action("actionId-1")
+def handle_some_action_one(ack, body):
+    ack()
+    selected_user = body["view"]["state"]["values"]["DIUt4"]["actionId-1"]["selected_user"] #usuario que el usuario ha seleccionado  
+    print(selected_user)
+    return selected_user
+
+@app.action("actionId-3")
+def handle_some_action_option_two(ack, body):
+    ack()
+    selected_channel_two = body["actions"][0]["selected_channel"] #canal que el usuario ha seleccionado
+    print(selected_channel_two)
+    return selected_channel_two
+
+@app.action("actionId-4")
+def handle_some_action_option_four(ack, body):
+    ack()
+    selected_channel_four = body["view"]["state"]["values"]["Lh2Uo"]["actionId-4"]["selected_channel"]
+    print(selected_channel_four)
+    return selected_channel_four
+
+@app.view("option_one")
+def handle_view_submission_events_option_one(ack, body):
+    ack()
     print(body)
+    information_options = handle_some_action_zero(ack, body), handle_some_action_one(ack, body) #obtenemos los datos del canal y del usuario y lo guardamos en una variable la cual se retornara para ser enviada al modelo IA
+    user_id = body["user"]["id"]   #obtenemos el id del usuario que ha enviado el formulario
+    print(information_options)
+    print(user_id)
+    return information_options, user_id
+   
+@app.view("option_two")
+def handle_view_submission_events_option_two(ack, body):
+    ack()
+    information_options_two = body["view"]["state"]["values"]["esL3U"]["actionId-3"]["selected_channel"]
+    print(f'Canal seleccionado: {information_options_two}')
+    user_id = body["user"]["id"]   #obtenemos el id del usuario que ha enviado el formulario
+    print(user_id)
+    return information_options_two, user_id
+
+@app.view("option_three")
+def handle_view_submission_events_option_three(ack, body):
+    ack()
+    option = 3
+    user_id = body["user"]["id"]   #obtenemos el id del usuario que ha enviado el formulario
+    print(user_id)
+    
+    return option, user_id
+
+@app.view("option_four")
+def handle_view_submission_events_option_four(ack, body):
+    ack()
+    information_options_four = handle_some_action_option_four(ack, body)
+    print(f'Canal seleccionado: {information_options_four}')
+    user_id = body["user"]["id"]   #obtenemos el id del usuario que ha enviado el formulario
+    print(user_id)
+    return information_options_four, user_id
+
 if __name__ == '__main__':
     flask_app.run(debug=True)
     
