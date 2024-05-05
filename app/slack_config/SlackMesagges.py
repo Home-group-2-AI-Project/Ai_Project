@@ -1,10 +1,12 @@
 import os
 from pathlib import Path
+import re
 from dotenv import load_dotenv
 from slack_bolt import App
 from slack_bolt.adapter.flask import SlackRequestHandler
 from flask import Flask, request
 import pandas as pd
+import emoji
 
 env_path = Path('.') / '.env' # Path to .env file
 load_dotenv(dotenv_path=env_path) # Load the .env file
@@ -43,13 +45,10 @@ def handle_message(event, say):
     user_id = event["user"]
     text = event["text"]
     ts = event["event_ts"]
-
-    # ckeck reply
-    if 'thread_ts' in event and event['thread_ts'] != ts:
-        print('Este mensaje es una respuesta en un hilo.')
-    else:
-        print('Este mensaje no es una respuesta en un hilo.')
-
+    text = emoji.demojize(text)
+    text = re.sub(r'http\S+|www.\S+', '', text)
+    text = re.sub(r':[a-zA-Z0-9_+-]*:', '', text)
+    text = re.sub(r'\W+', ' ', text)
     if app.client.auth_test()["user_id"] != user_id:
         print(f'in channel {channel_id}')
         try:
@@ -58,9 +57,10 @@ def handle_message(event, say):
                 os.makedirs(directory)
             csv_file_path = f'app/slack_config/Data_messages/channel_{channel_id}_messages.csv'
             existing_data = pd.read_csv(csv_file_path)         
-            new_row = pd.DataFrame([{'channel': channel_id,'user': user_id, 'text': text, 'ts': ts}])
-            updated_data = pd.concat([new_row,existing_data], ignore_index=True, sort=False)
-            updated_data.to_csv(csv_file_path, index=False)
+            if ('subtype' not in event or event['subtype'] != 'channel_join') and 'bot_id' not in event:
+                new_row = pd.DataFrame([{'channel': channel_id,'user': user_id, 'text': text, 'ts': ts}])
+                updated_data = pd.concat([new_row,existing_data], ignore_index=True, sort=False)
+                updated_data.to_csv(csv_file_path, index=False)
             return
         except Exception as e:
             print(f"Error opening file for channel {channel_id}: {e}")
@@ -71,11 +71,14 @@ def handle_message(event, say):
                 conversation_history = result["messages"]
                 mensajes = []
                 for mensaje in conversation_history:
-                    if 'user' in mensaje:
+                    if 'user' in mensaje and ('subtype' not in mensaje or mensaje['subtype'] != 'channel_join') and 'bot_id' not in mensaje:
                         user = mensaje['user']
                         text = mensaje['text']
                         ts = mensaje['ts']
-
+                        text = emoji.demojize(text)
+                        text = re.sub(r'http\S+|www.\S+', '', text)
+                        text = re.sub(r':[a-zA-Z0-9_+-]*:', '', text)
+                        text = re.sub(r'\W+', ' ', text)
                         mensajes.append({'channel': channel_id, 'user': user, 'text': text, 'ts': ts})
                         app.client.chat_postMessage(channel=channel_id, text=f"Mensaje guardado: {text}")
                     else:
@@ -231,7 +234,7 @@ def sentiment(client):
     client.chat_postMessage(channel=data.get(user_name))
     print(f"Received a message from user {user_name}")
     print(data)
-    return "", 200
+    return "Hola, ¿en qué te puedo ayudar?", 200
 
 @flask_app.route('/slack/open_modal', methods=['POST'])
 def modals():
