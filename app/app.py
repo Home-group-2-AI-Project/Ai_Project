@@ -36,14 +36,19 @@ channels = get_channels(app)
 def handle_message(event, say):
     channel_id = event["channel"]
     user_id = event["user"]
+    user_name = app.client.users_info(user=user_id)
+    display_name_normalized = user_name["user"]["real_name"]
     text = event["text"]
     ts = event["event_ts"]
     text = emoji.demojize(text)
     text = re.sub(r'http\S+|www.\S+', '', text)
     text = re.sub(r':[a-zA-Z0-9_+-]*:', '', text)
     text = re.sub(r'\W+', ' ', text)
+    
     if app.client.auth_test()["user_id"] != user_id:
         print(f'in channel {channel_id}')
+        print(f'user {user_id} said: {text}')
+        print(f'probando esto: {display_name_normalized}')
         try:
             directory = 'app/slack_utils/data_messages'
             if not os.path.exists(directory):
@@ -91,6 +96,7 @@ def handle_message(event, say):
 def update_home_tab(client, event, logger):
 
     try:
+        print(f"pase por aquí y le di click soy {event['user']}")
         # views.publish is the method that your app uses to push a view to the Home tab
         client.views_publish(
             # the user that opened your app's app home
@@ -408,10 +414,10 @@ def static_select(ack, body, client):
                     "type": "actions",
                     "elements": [
                         {
-                            "type": "channels_select",
+                            "type": "users_select",
                             "placeholder": {
                                 "type": "plain_text",
-                                "text": "Selecciona un canal"
+                                        "text": "Selecciona un usuario"
                             },
                             "action_id": "actionId-3"
                         }
@@ -503,7 +509,7 @@ def static_select(ack, body, client):
                     "type": "section",
                     "text": {
                         "type": "mrkdwn",
-                        "text": " Aqui podras obtener el Top *5* sentimientos mas manejado en cierto canal."
+                        "text": " Aqui podras obtener un resuemn de cierta cantidad de mensajes, para obtener un contexto de la conversacion"
                     }
                 },
                 {
@@ -587,7 +593,6 @@ def handle_some_action_zero(ack, body):
 @app.action("actionId-1")
 def handle_some_action_one(ack, body):
     ack()
-    print(body)
     # usuario que el usuario ha seleccionado
     selected_user = body["view"]["state"]["values"]["DIUt4"]["actionId-1"]["selected_user"]
     print(selected_user)
@@ -598,9 +603,9 @@ def handle_some_action_one(ack, body):
 def handle_some_action_option_two(ack, body):
     ack()
     # canal que el usuario ha seleccionado
-    selected_channel_two = body["actions"][0]["selected_channel"]
-    print(selected_channel_two)
-    return selected_channel_two
+    selected_user_two = body["view"]["state"]["values"]["AAWCp"]["actionId-3"]["selected_user"]
+    print(selected_user_two)
+    return selected_user_two
 
 @app.action("actionId-4")
 def handle_some_action_option_four(ack, body):
@@ -659,28 +664,35 @@ def handle_some_action_option_six_label(ack, body,client):
 
 #region Views
 @app.view("option_one")
-def handle_view_submission_events_option_one(ack, body):
+def handle_view_submission_events_option_one(ack, body,client):
     ack()
     print(body)
     # obtenemos los datos del canal y del usuario y lo guardamos en una variable la cual se retornara para ser enviada al modelo IA
     information_options = handle_some_action_zero(
         ack, body), handle_some_action_one(ack, body)
+    user_info = client.users_info(user=information_options[1])
+    real_name = user_info["user"]["real_name"]
+    print(f"estoy imprimiendo: {real_name}")
+    
     # obtenemos el id del usuario que ha enviado el formulario
     user_id = body["user"]["id"]
-    print(information_options)
     print(user_id)
-    return information_options, user_id
+    return information_options, user_id , real_name
 
 
 @app.view("option_two")
-def handle_view_submission_events_option_two(ack, body):
+def handle_view_submission_events_option_two(ack, body,client):
     ack()
-    information_options_two = body["view"]["state"]["values"]["esL3U"]["actionId-3"]["selected_channel"]
-    print(f'Canal seleccionado: {information_options_two}')
+    information_options_two = handle_some_action_option_two(ack, body)
+    print(f'Usuario seleccionado: {information_options_two}')
+    #obtener el nombre del usuario que ha sido seleccionado en el formulario
+    user_info_two = client.users_info(user=information_options_two)
+    real_name_two = user_info_two["user"]["real_name"]
+    print(f"estoy imprimiendo: {real_name_two}")
     # obtenemos el id del usuario que ha enviado el formulario
     user_id = body["user"]["id"]
     print(user_id)
-    return information_options_two, user_id
+    return information_options_two, user_id , real_name_two
 
 
 @app.view("option_three")
