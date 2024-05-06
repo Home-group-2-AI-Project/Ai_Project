@@ -12,6 +12,8 @@ from flask import Flask, request
 from slack_utils.open_ai_connection import OpenAIConnection
 from slack_utils.get_channels import get_channels
 
+
+
 load_dotenv()
 
 SLACK_BOT_TOKEN = os.environ.get("SLACK_TOKEN")
@@ -74,8 +76,7 @@ def handle_message(event, say):
                         text = re.sub(r'\W+', ' ', text)
                         mensajes.append(
                             {'channel': channel_id, 'user': user, 'text': text, 'ts': ts})
-                        app.client.chat_postMessage(
-                            channel=channel_id, text=f"Mensaje guardado: {text}")
+                        print("pase por aqui")                       
                     else:
                         print("Mensaje no contiene información de usuario:", mensaje)
                 df = pd.DataFrame(mensajes)
@@ -136,6 +137,9 @@ def update_home_tab(client, event, logger):
                         }
                     },
                     {
+                        "type": "divider"
+                    },
+                    {
                         "type": "section",
                         "text": {
                             "type": "mrkdwn",
@@ -169,13 +173,33 @@ def update_home_tab(client, event, logger):
                         "type": "section",
                         "text": {
                             "type": "mrkdwn",
+                            "text": ":five: En esta opcion, podras obtener Top(5) sentimientos mas manejados en cierto canal, por todos los usuarios."
+                        }
+                    },
+                    {
+                        "type": "divider"
+                    },
+                    {
+                        "type": "section",
+                        "text": {
+                            "type": "mrkdwn",
+                            "text": ":six: En esta opcion, podras obtener un resumen de cierta cantidad de mensajes en cierto canal, para darte un contexto de lo que hablan los usuarios."
+                        }
+                    },
+                    {
+                        "type": "divider"
+                    },                    
+                    {
+                        "type": "section",
+                        "text": {
+                            "type": "mrkdwn",
                             "text": "Selecciona una opcion de la lista que acabas de ver"
                         },
                         "accessory": {
                             "type": "static_select",
                             "placeholder": {
                                 "type": "plain_text",
-                                "text": "Select an item"
+                                "text": "Seleccionar"
                             },
                             "options": [
                                 {
@@ -205,6 +229,20 @@ def update_home_tab(client, event, logger):
                                         "text": "Opcion :four:"
                                     },
                                     "value": "value-3"
+                                },
+                                {
+                                    "text": {
+                                        "type": "plain_text",
+                                        "text": "Opcion :five:"
+                                    },
+                                    "value": "value-4"
+                                },
+                                {
+                                    "text": {
+                                        "type": "plain_text",
+                                        "text": "Opcion :six:"
+                                    },
+                                    "value": "value-5"
                                 }
                             ],
                             "action_id": "static_select-action"
@@ -293,8 +331,7 @@ def resumen_contexto_canal(ack, say, command):
 ################################################################################
 # app actions slack bolt -------------------------------------------------------
 ################################################################################
-
-
+#region Actions
 @app.action("static_select-action")
 def static_select(ack, body, client):
     ack()
@@ -346,7 +383,7 @@ def static_select(ack, body, client):
         })
 
         client.chat_postMessage(
-            channel=body["user"]["id"], text="Seleccionaste la opción 1")
+            channel=body["user"]["id"], text="Seleccionaste la opción 1" )
 
     elif selected_option == "value-1":
         client.views_open(trigger_id=body["trigger_id"],
@@ -450,6 +487,89 @@ def static_select(ack, body, client):
         })
         client.chat_postMessage(
             channel=body["user"]["id"], text="Seleccionaste la opción 4")
+    elif selected_option == "value-4":
+        client.views_open(trigger_id=body["trigger_id"],
+                          view={
+            "title": {
+                "type": "plain_text",
+                "text": "Opcion 5"
+            },
+            "submit": {
+                "type": "plain_text",
+                "text": "Submit"
+            },
+            "blocks": [
+                {
+                    "type": "section",
+                    "text": {
+                        "type": "mrkdwn",
+                        "text": " Aqui podras obtener el Top *5* sentimientos mas manejado en cierto canal."
+                    }
+                },
+                {
+                    "type": "actions",
+                    "elements": [
+                        {
+                            "type": "channels_select",
+                            "placeholder": {
+                                "type": "plain_text",
+                                "text": "Selecciona un canal"
+                            },
+                            "action_id": "actionId-5"
+                        }
+                    ]
+                }
+            ],
+            "type": "modal",
+            "callback_id": "option_five",
+        })
+    elif selected_option == "value-5":
+        client.views_open(trigger_id=body["trigger_id"],
+                          view={
+            "title": {
+                "type": "plain_text",
+                "text": "Opcion 5"
+            },
+            "submit": {
+                "type": "plain_text",
+                "text": "Submit"
+            },
+            "blocks": [
+                {
+                    "type": "section",
+                    "text": {
+                        "type": "mrkdwn",
+                        "text": " Aqui podras obtener el Top *5* sentimientos mas manejado en cierto canal."
+                    }
+                },
+                {
+                    "type": "input",
+                    "element": {
+                        "type": "plain_text_input",
+                        "action_id": "plain_text_input-action"
+                    },
+                    "label": {
+                        "type": "plain_text",
+                        "text": "Escribe un numero de mensajes a analizar entre *5* y *200* "
+                    }
+                },
+                {
+                    "type": "actions",
+                    "elements": [
+                        {
+                            "type": "channels_select",
+                            "placeholder": {
+                                "type": "plain_text",
+                                "text": "Selecciona un canal"
+                            },
+                            "action_id": "actionId-6"
+                        }
+                    ]
+                }
+            ],
+            "type": "modal",
+            "callback_id": "option_six",
+        })
     else:
         client.chat_postMessage(
             channel=body["user"]["id"], text="No se seleccionó ninguna opción")
@@ -467,6 +587,7 @@ def handle_some_action_zero(ack, body):
 @app.action("actionId-1")
 def handle_some_action_one(ack, body):
     ack()
+    print(body)
     # usuario que el usuario ha seleccionado
     selected_user = body["view"]["state"]["values"]["DIUt4"]["actionId-1"]["selected_user"]
     print(selected_user)
@@ -481,7 +602,6 @@ def handle_some_action_option_two(ack, body):
     print(selected_channel_two)
     return selected_channel_two
 
-
 @app.action("actionId-4")
 def handle_some_action_option_four(ack, body):
     ack()
@@ -489,11 +609,55 @@ def handle_some_action_option_four(ack, body):
     print(selected_channel_four)
     return selected_channel_four
 
+@app.action("actionId-5")
+def handle_some_action_option_five(ack, body):
+    ack()  
+    selected_channel_five = body['view']['state']['values']['omv1w']['actionId-5']['selected_channel']
+    print(selected_channel_five)
+    return selected_channel_five
+
+@app.action("actionId-6")
+def handle_some_action_option_six(ack, body):
+    ack()
+    selected_channel_six = body["view"]["state"]["values"]["qjcrh"]["actionId-6"]["selected_channel"]
+    print(selected_channel_six)
+    return selected_channel_six
+
+@app.action("plain_text_input-action")
+def handle_some_action_option_six_label(ack, body,client):
+    ack()    
+    try:
+        #si el input es un numero entre 5 y 200 lo guardamos en una variable y lo retornamos
+        input_number = body["view"]["state"]["values"]["nLBoM"]["plain_text_input-action"]["value"]
+        input_number = int(input_number)
+        print(input_number)
+        return input_number # retorna el numero de mensajes a analizar
+    except ValueError:  # Raised when converting text to a number fails
+        # Open the modal again with an error message
+        client.views_open(trigger_id=body["trigger_id"], view={
+            "title": {
+                "type": "plain_text",
+                "text": "¡Error!"
+            },
+            "blocks": [
+                {
+                    "type": "section",
+                    "text": {
+                        "type": "mrkdwn",
+                        "text": "Por favor, introduce un número de mensajes para analizar. Solo se permiten números entre 5 y 200."
+                    }
+                }
+            ],
+            "type": "modal",
+            "callback_id": "error_modal"  # New callback_id for error modal
+        })
+        return None  # retorna None si el input no es un numero entre 5 y 200
+
 ################################################################################
 # app views slack bolt ---------------------------------------------------------
 ################################################################################
 
-
+#region Views
 @app.view("option_one")
 def handle_view_submission_events_option_one(ack, body):
     ack()
@@ -540,6 +704,26 @@ def handle_view_submission_events_option_four(ack, body):
     print(user_id)
     return information_options_four, user_id
 
+@app.view("option_five")
+def handle_view_submission_events_option_five(ack, body):
+    ack()
+    information_options_five = handle_some_action_option_five(ack, body)
+    print(f'Canal seleccionado: {information_options_five}')
+    # obtenemos el id del usuario que ha enviado el formulario
+    user_id = body["user"]["id"]
+    print(user_id)
+    return information_options_five, user_id
+errors = {}
+@app.view("option_six")
+def handle_view_submission_events_option_six(ack, body, client):
+    ack()
+    information_options_six = handle_some_action_option_six(ack, body), handle_some_action_option_six_label(ack, body, client)
+    print(information_options_six)
+    # obtenemos el id del usuario que ha enviado el formulario
+    user_id = body["user"]["id"]        
+    # retorna el canal seleccionado y el numero de mensajes a analizar en la variable information_options_six
+    # y el id del usuario que ha enviado el formulario
+    return information_options_six, user_id 
 
 ################################################################################
 # flask app --------------------------------------------------------------------
@@ -550,10 +734,10 @@ handler = SlackRequestHandler(app)
 
 
 @flask_app.route('/sentiment', methods=['Post'])
-def sentiment(client):
+def sentiment():
     data = request.form
     user_name = data.get('user_name')
-    client.chat_postMessage(channel=data.get(user_name))
+    app.client.chat_postMessage(channel=data.get(user_name))
     print(f"Received a message from user {user_name}")
     print(data)
     return "Hola, ¿en qué te puedo ayudar?", 200
@@ -585,4 +769,4 @@ def oauth_redirect():
 
 
 if "__main__" == __name__:
-    flask_app.run(port=3000)
+    flask_app.run(debug=True)
