@@ -8,4 +8,4 @@ COPY ./app .
 
 EXPOSE 3000
 
-CMD [ "flask", "run", "-p", "3000"]
+CMD [ "gunicorn", "-b", "0.0.0.0:3000", "app:app"]
