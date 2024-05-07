@@ -5,12 +5,26 @@ import pandas as pd
 from model import Model
 from open_ai_connection import OpenAIConnection
 from app.app import handle_view_submission_events_option_one
+from app.app import handle_view_submission_events_option_two
+from app.app import handle_view_submission_events_option_four
+from app.app import handle_view_submission_events_option_five
+from app.app import handle_view_submission_events_option_six
 
 
 model = Model()
 gpt = OpenAIConnection()
-channel_name = handle_view_submission_events_option_one()[0][0]
-user_id = handle_view_submission_events_option_one()[0][1]
+
+
+#llamar las funciones de app.py para obtener los datos de los eventos
+channel_name_option_one = handle_view_submission_events_option_one()[0][0]
+user_id_option_one = handle_view_submission_events_option_one()[0][1]
+user_id_option_two = handle_view_submission_events_option_two()[0]
+channel_name_option_four = handle_view_submission_events_option_four()[0]
+channel_name_option_five = handle_view_submission_events_option_five()[0]
+channel_name_option_six = handle_view_submission_events_option_six()[0][0]
+label_option_six = handle_view_submission_events_option_six()[0][1]
+
+
 # obtener todos los mensajes de un usuario en un canal
 def get_user_only_chanel(user_id, channel_name):
     df = get_menssages_only_chanel(channel_name)
@@ -111,7 +125,7 @@ def sentiemnt_count(result_model):
     return sentiment_percentages
 
 if __name__ == '__main__':
-    get_user_only_chanel('U070C5QQS5U', 'varios')
+    get_user_only_chanel('U070C5QQS5U', 'U070C5QQS5U')
     #get_user_all_channels('U071GEQ4J13')
     #get_sentiment_all_channel()
     #get_top_5_sentiment_one_channel('varios')
