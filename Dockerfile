@@ -6,6 +6,6 @@ RUN python -m spacy download en_core_web_sm
 
 COPY ./app .
 
-EXPOSE 5000
+EXPOSE 3000
 
 CMD [ "flask", "run", "-p", "3000"]
