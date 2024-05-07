@@ -771,7 +771,7 @@ def analyze_view_submission_information(information_options, user_id, real_name,
     return client.chat_postMessage(channel=user_id, text=response, as_user=True)
 
 
-@app.view("option_two")
+@bolt_app.view("option_two")
 def handle_view_submission_events_option_two(ack, body,client):
     ack()
     information_options_two = handle_some_action_option_two(ack, body)
