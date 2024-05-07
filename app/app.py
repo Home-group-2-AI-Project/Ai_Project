@@ -29,69 +29,6 @@ openai_connection = OpenAIConnection()
 channels = get_channels(bolt_app)
 model = Model()
 
-################################################################################
-# global variables responsive  --------------------------------------------------------
-################################################################################
-
-option_one_blocks =  [
-		{
-			"type": "section",
-			"text": {
-				"type": "mrkdwn",
-				"text": "You have a new request:\n*<fakeLink.toEmployeeProfile.com|Fred Enriquez - New device request>*"
-			}
-		},
-		{
-			"type": "section",
-			"fields": [
-				{
-					"type": "mrkdwn",
-					"text": "*Type:*\nComputer (laptop)"
-				},
-				{
-					"type": "mrkdwn",
-					"text": "*When:*\nSubmitted Aut 10"
-				},
-				{
-					"type": "mrkdwn",
-					"text": "*Last Update:*\nMar 10, 2015 (3 years, 5 months)"
-				},
-				{
-					"type": "mrkdwn",
-					"text": "*Reason:*\nAll vowel keys aren't working."
-				},
-				{
-					"type": "mrkdwn",
-					"text": "*Specs:*\n\"Cheetah Pro 15\" - Fast, really fast\""
-				}
-			]
-		},
-		{
-			"type": "actions",
-			"elements": [
-				{
-					"type": "button",
-					"text": {
-						"type": "plain_text",
-						"text": "Approve"
-					},
-					"style": "primary",
-					"value": "click_me_123"
-				},
-				{
-					"type": "button",
-					"text": {
-						"type": "plain_text",
-						"text": "Deny"
-					},
-					"style": "danger",
-					"value": "click_me_123"
-				}
-			]
-		}
-	]
-
-
 
 ################################################################################
 # bolt_app events slack bolt --------------------------------------------------------
@@ -218,6 +155,18 @@ def update_home_tab(client, event, logger):
                             "type": "mrkdwn",
                             "text": "En las siguientes secciones aparecereran distintas configuraciones, en las cuales tu podras escoger que es lo que quieres que nuestra IA de sentimientos analice,* No te preocupes, cada una de ellas tendran un breve resumen de lo que hacen.*"
                         }
+                    },
+                    {
+                        "type": "divider"
+                    },
+                    {
+                        "type": "image",
+                        "title": {
+                            "type": "plain_text",
+                            "text": "image1"
+                        },
+                        "image_url": "app/slack_config/messages_info.jpg",
+                        "alt_text": "image1"
                     },
                     {
                         "type": "divider"
@@ -767,35 +716,61 @@ def handle_view_submission_events_option_one(ack, body,client):
     print(f"estoy imprimiendo: {real_name}")
     # obtenemos el id del usuario que ha enviado el formulario
     user_id = body["user"]["id"]
+    option_one_blocks = [
+        {
+            "type": "section",
+            "text": {
+                "type": "mrkdwn",
+                "text": f"Hola @{user_id}, te escribo con la respuesta a la solicitud que creaste. :hand:"
+            }
+        },
+        {
+            "type": "divider"
+        },
+        {
+            "type": "section",
+            "text": {
+                "type": "mrkdwn",
+                "text": "Recuerda que seleccionaste la opción: *Número uno*."
+            }
+        },
+        {
+            "type": "section",
+            "text": {
+                "type": "mrkdwn",
+                "text": "En esta respuesta, podrás obtener un resumen de los sentimientos de un usuario en cierto canal (se tendrán en cuenta todos los mensajes que el usuario haya enviado)"
+            }
+        },
+        {
+            "type": "divider"
+        },
+        {
+            "type": "header",
+            "text": {
+                "type": "plain_text",
+                "text": "En base a tu selección se obtuvo:"
+            }
+        },
+        {
+            "type": "section",
+            "text": {
+                "type": "plain_text",
+                "text": "Aquí va llamada la respuesta de ChatGPT y la IA."
+            }
+        }
+    ]
+    message = client.chat_postMessage(channel=user_id, blocks = option_one_blocks, as_user=True)
     print(user_id)
-    dic_info =  [
-		{
-			"type": "section",
-			"text": {
-				"type": "mrkdwn",
-				"text": f"This is a mrkdwn section block :ghost: {hello()} *this is bold*, and ~this is crossed out~, and <https://google.com|this is a link>"
-			}
-		},
-		{
-			"type": "section",
-			"text": {
-				"type": "plain_text",
-				"text": "This is a plain text section block."
-			}
-		}
-	]
-    
-    #return information_options, user_id , real_name
-    return client.chat_postMessage(channel=user_id, blocks = option_one_blocks, as_user=True)
+    return information_options, user_id , real_name, message
+    #return client.chat_postMessage(channel=user_id, blocks = option_one_blocks, as_user=True)
     #return analyze_view_submission_information(information_options, user_id, real_name, client)
-    
+       
 def analyze_view_submission_information(information_options, user_id, real_name, client):
     # Realizar análisis y dar retroalimentación
     response = openai_connection.chat_gpt("dame una lista de 10 animales herviboros")
     return client.chat_postMessage(channel=user_id, text=response, as_user=True)
 
-def hello():
-    return "Hello, World!"
+
 @bolt_app.view("option_two")
 def handle_view_submission_events_option_two(ack, body,client):
     ack()
@@ -851,6 +826,11 @@ def handle_view_submission_events_option_six(ack, body, client):
     # y el id del usuario que ha enviado el formulario
     return information_options_six, user_id 
 
+
+################################################################################
+# global variables responsive  --------------------------------------------------------
+################################################################################
+
 ################################################################################
 # flask bolt_app --------------------------------------------------------------------
 ################################################################################
@@ -892,7 +872,7 @@ def oauth_redirect():
 def chatgpt():
     return handler.handle(request)
 
-@app.route("/test", methods=["GET"])
+@flask_app.route("/test", methods=["GET"])
 def test_endpoint():
     return "This is a test endpoint"
 
