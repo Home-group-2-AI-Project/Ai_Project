@@ -889,5 +889,9 @@ def oauth_redirect():
 def chatgpt():
     return handler.handle(request)
 
+@flask_app.route("/test", methods=["GET"])
+def test_endpoint():
+    return "This is a test endpoint"
+
 if "__main__" == __name__:
     flask_app.run(port=3000)
