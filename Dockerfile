@@ -8,4 +8,4 @@ COPY ./app .
 
 EXPOSE 5000
 
-CMD [ "flask", "run" ]
+CMD [ "flask", "run", "-p", "3000"]
