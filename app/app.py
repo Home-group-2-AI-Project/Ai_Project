@@ -143,6 +143,8 @@ def handle_message(event, say):
                 conversation_history = result["messages"]
                 mensajes = []
                 for mensaje in conversation_history:
+                    
+                    
                     if 'user' in mensaje and ('subtype' not in mensaje or mensaje['subtype'] != 'channel_join') and 'bot_id' not in mensaje:
                         user = mensaje['user']
                         text = mensaje['text']
@@ -165,6 +167,7 @@ def handle_message(event, say):
                 textos = [mensaje['text'] for mensaje in mensajes]
                 textos_traducidos = openai_connection.traducir_texto(textos)
                 textos_limpios = [texto.translate({ord(c): None for c in "!@#$%^&*()[]{};:,./<>?|`~-=_+'\""}) for texto in textos_traducidos]
+                print(textos_limpios)
                 for i in range(len(mensajes)):
                     mensajes[i]['text'] = textos_limpios[i]
 
