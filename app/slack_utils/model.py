@@ -4,6 +4,9 @@ import unicodedata
 
 import joblib
 import spacy
+import nltk
+
+nltk.download('stopwords')
 
 from nltk.corpus import stopwords
 
@@ -11,7 +14,7 @@ from nltk.corpus import stopwords
 class Model:
     def __init__(self):
         self._model = joblib.load(os.path.join(
-            os.path.dirname(__file__), "sentiment_analysis.pkl"))
+            os.path.dirname(__file__), "sentiment_analysis_model.pkl"))
         self._vectorizer = joblib.load(os.path.join(
             os.path.dirname(__file__), "vectorizer.pkl"))
 

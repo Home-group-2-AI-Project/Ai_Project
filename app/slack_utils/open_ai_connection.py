@@ -1,5 +1,6 @@
 import os
 import openai
+from langdetect import detect
 
 from dotenv import load_dotenv
 
@@ -129,3 +130,50 @@ class OpenAIConnection:
 
         response_text = respuesta.choices[0].message.content
         return response_text
+    
+    def traducir_texto(self, textos):
+        """
+        Esta función recibe una lista de textos y devuelve una lista de traducciones al inglés
+        """
+
+        traducciones = []
+        for texto in textos:
+            # Detectar el idioma del texto
+            respuesta = self.client.chat.completions.create(
+                model="gpt-3.5-turbo",
+                messages=[
+                    {"role": "system", "content": "You are a helpful assistant that translates text into English."},
+                    {"role": "user", "content": "PREGUNTA: " + texto}
+                ]
+            )
+
+            response_text = respuesta.choices[0].message.content
+
+            if response_text.startswith("QUESTION:"):
+                traduccion = response_text.split(": ", 1)[1]
+            else:
+                traduccion = texto  # Mantener el texto original si no es una respuesta esperada
+            traducciones.append(traduccion)
+
+        return traducciones
+    
+    def traducir_un_texto(self, texto):
+        """
+        Esta función recibe un texto y devuelve la traducción al inglés
+        """
+        # Detectar el idioma del texto
+        respuesta = self.client.chat.completions.create(
+            model="gpt-3.5-turbo",
+            messages=[
+                {"role": "system", "content": "You are a helpful assistant that translates text into English."},
+                {"role": "user", "content": "PREGUNTA: " + texto}
+            ]
+        )
+
+        response_text = respuesta.choices[0].message.content
+        if response_text.startswith("QUESTION:"):
+            traduccion = response_text.split(": ", 1)[1]
+        else:
+            traduccion = texto  # Mantener el texto original si no es una respuesta esperada
+
+        return traduccion

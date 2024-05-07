@@ -3,6 +3,7 @@ import openai
 import emoji
 import re
 
+
 import pandas as pd
 
 from dotenv import load_dotenv
@@ -45,12 +46,18 @@ def handle_message(event, say):
         try:
             directory = 'app/slack_utils/data_messages'
             if not os.path.exists(directory):
-                os.makedirs(directory)
-            csv_file_path = f'app/slack_utils/data_messages/channel_{channel_id}_messages.csv'
+                os.makedirs(directory) 
+            channel_info = app.client.conversations_info(channel=channel_id)
+            channel_name = channel_info["channel"]["name"]
+            csv_file_path = f'app/slack_config/data_messages/channel_{channel_name}_messages.csv'
             existing_data = pd.read_csv(csv_file_path)
             if ('subtype' not in event or event['subtype'] != 'channel_join') and 'bot_id' not in event:
+                channel_info = app.client.conversations_info(channel=channel_id)
+                channel_name = channel_info["channel"]["name"]
+                text_tranlated = openai_connection.traducir_texto([text])[0]
+                text = text_tranlated.translate({ord(c): None for c in "!@#$%^&*()[]{};:,./<>?|`~-=_+'\""})
                 new_row = pd.DataFrame(
-                    [{'channel': channel_id, 'user': user_id, 'text': text, 'ts': ts}])
+                    [{'channel': channel_name, 'user': user_id, 'text': text, 'ts': ts}])
                 updated_data = pd.concat(
                     [new_row, existing_data], ignore_index=True, sort=False)
                 updated_data.to_csv(csv_file_path, index=False)
@@ -72,15 +79,25 @@ def handle_message(event, say):
                         text = re.sub(r'http\S+|www.\S+', '', text)
                         text = re.sub(r':[a-zA-Z0-9_+-]*:', '', text)
                         text = re.sub(r'\W+', ' ', text)
+                        channel_info = app.client.conversations_info(channel=channel_id)
+                        channel_name = channel_info["channel"]["name"]
                         mensajes.append(
-                            {'channel': channel_id, 'user': user, 'text': text, 'ts': ts})
-                        app.client.chat_postMessage(
-                            channel=channel_id, text=f"Mensaje guardado: {text}")
+                            {'channel': channel_name, 'user': user, 'text': text, 'ts': ts})
                     else:
                         print("Mensaje no contiene información de usuario:", mensaje)
+                channel_info = app.client.conversations_info(channel=channel_id)
+                channel_name = channel_info["channel"]["name"]
+                
+
+                textos = [mensaje['text'] for mensaje in mensajes]
+                textos_traducidos = openai_connection.traducir_texto(textos)
+                textos_limpios = [texto.translate({ord(c): None for c in "!@#$%^&*()[]{};:,./<>?|`~-=_+'\""}) for texto in textos_traducidos]
+                for i in range(len(mensajes)):
+                    mensajes[i]['text'] = textos_limpios[i]
+
                 df = pd.DataFrame(mensajes)
                 df.to_csv(
-                    f'app/slack_utils/data_messages/channel_{channel_id}_messages.csv', index=False)
+                    f'app/slack_config/data_messages/channel_{channel_name}_messages.csv', index=False)
             else:
                 print(
                     f"Error getting messages for channel {channel_id}: {result['error']}")
@@ -503,6 +520,7 @@ def handle_view_submission_events_option_one(ack, body):
         ack, body), handle_some_action_one(ack, body)
     # obtenemos el id del usuario que ha enviado el formulario
     user_id = body["user"]["id"]
+    
     print(information_options)
     print(user_id)
     return information_options, user_id
