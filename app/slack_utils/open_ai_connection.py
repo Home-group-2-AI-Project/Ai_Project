@@ -135,10 +135,10 @@ class OpenAIConnection:
         """
         Esta función recibe una lista de textos y devuelve una lista de traducciones al inglés
         """
-
+       
         traducciones = []
         for texto in textos:
-            # Detectar el idioma del texto
+            
             respuesta = self.client.chat.completions.create(
                 model="gpt-3.5-turbo",
                 messages=[
@@ -154,14 +154,14 @@ class OpenAIConnection:
             else:
                 traduccion = texto  # Mantener el texto original si no es una respuesta esperada
             traducciones.append(traduccion)
-
+    
         return traducciones
     
     def traducir_un_texto(self, texto):
         """
         Esta función recibe un texto y devuelve la traducción al inglés
         """
-        # Detectar el idioma del texto
+        
         respuesta = self.client.chat.completions.create(
             model="gpt-3.5-turbo",
             messages=[
