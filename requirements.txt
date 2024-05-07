@@ -1,6 +1,6 @@
 annotated-types==0.6.0
 anyio==4.3.0
-blinker==1.8.1
+blinker==1.8.2
 blis==0.7.11
 catalogue==2.0.10
 certifi==2024.2.2
@@ -21,13 +21,14 @@ itsdangerous==2.2.0
 Jinja2==3.1.4
 joblib==1.4.2
 langcodes==3.4.0
+langdetect==1.0.9
 language_data==1.2.0
-marisa-trie==1.1.0
+marisa-trie==1.1.1
 MarkupSafe==2.1.5
 murmurhash==1.0.10
 nltk==3.8.1
 numpy==1.26.4
-openai==1.25.2
+openai==1.26.0
 packaging==24.0
 pandas==2.2.2
 preshed==3.0.9
