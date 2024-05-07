@@ -2,8 +2,9 @@ import os
 import openai
 import emoji
 import re
-
+import time
 import pandas as pd
+import json
 
 from dotenv import load_dotenv
 from slack_bolt import App
@@ -26,6 +27,70 @@ app = App(
 
 openai_connection = OpenAIConnection()
 channels = get_channels(app)
+
+################################################################################
+# global variables responsive  --------------------------------------------------------
+################################################################################
+
+option_one_blocks =  [
+		{
+			"type": "section",
+			"text": {
+				"type": "mrkdwn",
+				"text": "You have a new request:\n*<fakeLink.toEmployeeProfile.com|Fred Enriquez - New device request>*"
+			}
+		},
+		{
+			"type": "section",
+			"fields": [
+				{
+					"type": "mrkdwn",
+					"text": "*Type:*\nComputer (laptop)"
+				},
+				{
+					"type": "mrkdwn",
+					"text": "*When:*\nSubmitted Aut 10"
+				},
+				{
+					"type": "mrkdwn",
+					"text": "*Last Update:*\nMar 10, 2015 (3 years, 5 months)"
+				},
+				{
+					"type": "mrkdwn",
+					"text": "*Reason:*\nAll vowel keys aren't working."
+				},
+				{
+					"type": "mrkdwn",
+					"text": "*Specs:*\n\"Cheetah Pro 15\" - Fast, really fast\""
+				}
+			]
+		},
+		{
+			"type": "actions",
+			"elements": [
+				{
+					"type": "button",
+					"text": {
+						"type": "plain_text",
+						"text": "Approve"
+					},
+					"style": "primary",
+					"value": "click_me_123"
+				},
+				{
+					"type": "button",
+					"text": {
+						"type": "plain_text",
+						"text": "Deny"
+					},
+					"style": "danger",
+					"value": "click_me_123"
+				}
+			]
+		}
+	]
+
+
 
 ################################################################################
 # app events slack bolt --------------------------------------------------------
@@ -264,7 +329,7 @@ def update_home_tab(client, event, logger):
 ################################################################################
 # app commands slack bolt ------------------------------------------------------
 ################################################################################
-
+#region Commands
 
 @app.command("/chatgpt")
 def command_chat_gpt(ack, say, command):
@@ -274,11 +339,17 @@ def command_chat_gpt(ack, say, command):
     # Extract the user's message
     text = command['text']
 
-    reply = OpenAIConnection.chat_gpt(text)
+    reply = openai_connection.chat_gpt(text)
 
     # Post the user's message and the response back to the same channel
     say(f"*Respuesta:* {reply}\n----------------")
-
+    
+@app.command("/sentiment")
+def command_sentimientos(ack,command,client):
+    ack()
+    texts = command['text']
+    print(f"Received a message from user {texts}")
+    return client.chat_postMessage(channel=command['channel_id'], text=texts, as_user=True)
 
 @app.command("/usuario-canal")
 def command_resumen_sentimientos_usuario_canal(ack, say, command):
@@ -666,20 +737,43 @@ def handle_some_action_option_six_label(ack, body,client):
 @app.view("option_one")
 def handle_view_submission_events_option_one(ack, body,client):
     ack()
-    print(body)
     # obtenemos los datos del canal y del usuario y lo guardamos en una variable la cual se retornara para ser enviada al modelo IA
     information_options = handle_some_action_zero(
         ack, body), handle_some_action_one(ack, body)
     user_info = client.users_info(user=information_options[1])
     real_name = user_info["user"]["real_name"]
     print(f"estoy imprimiendo: {real_name}")
-    
     # obtenemos el id del usuario que ha enviado el formulario
     user_id = body["user"]["id"]
     print(user_id)
-    return information_options, user_id , real_name
+    dic_info =  [
+		{
+			"type": "section",
+			"text": {
+				"type": "mrkdwn",
+				"text": f"This is a mrkdwn section block :ghost: {hello()} *this is bold*, and ~this is crossed out~, and <https://google.com|this is a link>"
+			}
+		},
+		{
+			"type": "section",
+			"text": {
+				"type": "plain_text",
+				"text": "This is a plain text section block."
+			}
+		}
+	]
+    
+    #return information_options, user_id , real_name
+    return client.chat_postMessage(channel=user_id, blocks = option_one_blocks, as_user=True)
+    #return analyze_view_submission_information(information_options, user_id, real_name, client)
+    
+def analyze_view_submission_information(information_options, user_id, real_name, client):
+    # Realizar análisis y dar retroalimentación
+    response = openai_connection.chat_gpt("dame una lista de 10 animales herviboros")
+    return client.chat_postMessage(channel=user_id, text=response, as_user=True)
 
-
+def hello():
+    return "Hello, World!"
 @app.view("option_two")
 def handle_view_submission_events_option_two(ack, body,client):
     ack()
@@ -702,9 +796,7 @@ def handle_view_submission_events_option_three(ack, body):
     # obtenemos el id del usuario que ha enviado el formulario
     user_id = body["user"]["id"]
     print(user_id)
-
     return option, user_id
-
 
 @app.view("option_four")
 def handle_view_submission_events_option_four(ack, body):
@@ -740,19 +832,14 @@ def handle_view_submission_events_option_six(ack, body, client):
 ################################################################################
 # flask app --------------------------------------------------------------------
 ################################################################################
-
+#region Flaskapp
 flask_app = Flask(__name__)
 handler = SlackRequestHandler(app)
 
 
 @flask_app.route('/sentiment', methods=['Post'])
 def sentiment():
-    data = request.form
-    user_name = data.get('user_name')
-    app.client.chat_postMessage(channel=data.get(user_name))
-    print(f"Received a message from user {user_name}")
-    print(data)
-    return "Hola, ¿en qué te puedo ayudar?", 200
+    return handler.handle(request)
 
 
 @flask_app.route('/slack/open_modal', methods=['POST'])
@@ -779,6 +866,9 @@ def install():
 def oauth_redirect():
     return handler.handle(request)
 
+@flask_app.route("/chatgpt", methods=["POST"])
+def chatgpt():
+    return handler.handle(request)
 
 if "__main__" == __name__:
-    flask_app.run(debug=True)
+    flask_app.run(port=3000)
