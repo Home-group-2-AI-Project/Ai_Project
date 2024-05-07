@@ -34,8 +34,8 @@ jobs:
 
       - name: Stop running container
         run: |
-          ssh -o StrictHostKeyChecking=no -i key.pem ubuntu@ec2-18-118-107-108.us-east-2.compute.amazonaws.com 'sudo docker stop cddemo || true'
-          ssh -o StrictHostKeyChecking=no -i key.pem ubuntu@ec2-18-118-107-108.us-east-2.compute.amazonaws.com 'sudo docker rm cddemo || true'
+          ssh -o StrictHostKeyChecking=no -i key.pem ubuntu@ec2-18-118-107-108.us-east-2.compute.amazonaws.com 'sudo docker stop slack-bot || true'
+          ssh -o StrictHostKeyChecking=no -i key.pem ubuntu@ec2-18-118-107-108.us-east-2.compute.amazonaws.com 'sudo docker rm slack-bot || true'
 
       - name: Run new container
         run: |
