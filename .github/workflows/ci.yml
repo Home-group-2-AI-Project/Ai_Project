@@ -1,4 +1,4 @@
-name: push app to ec2 instance
+name: ci
 
 on:
   push:
