@@ -20,13 +20,13 @@ load_dotenv()
 SLACK_BOT_TOKEN = os.environ.get("SLACK_TOKEN")
 SLACK_SIGNING_SECRET = os.environ.get("SLACK_SIGNING_SECRET")
 
-app = App(
+bolt_app = App(
     token=SLACK_BOT_TOKEN,
     signing_secret=SLACK_SIGNING_SECRET
 )
 
 openai_connection = OpenAIConnection()
-channels = get_channels(app)
+channels = get_channels(bolt_app)
 model = Model()
 
 ################################################################################
@@ -94,15 +94,15 @@ option_one_blocks =  [
 
 
 ################################################################################
-# app events slack bolt --------------------------------------------------------
+# bolt_app events slack bolt --------------------------------------------------------
 ################################################################################
 
 
-@app.event("message")
+@bolt_app.event("message")
 def handle_message(event, say):
     channel_id = event["channel"]
     user_id = event["user"]
-    user_name = app.client.users_info(user=user_id)
+    user_name = bolt_app.client.users_info(user=user_id)
     display_name_normalized = user_name["user"]["real_name"]
     text = event["text"]
     ts = event["event_ts"]
@@ -111,20 +111,20 @@ def handle_message(event, say):
     text = re.sub(r':[a-zA-Z0-9_+-]*:', '', text)
     text = re.sub(r'\W+', ' ', text)
     
-    if app.client.auth_test()["user_id"] != user_id:
+    if bolt_app.client.auth_test()["user_id"] != user_id:
         print(f'in channel {channel_id}')
         print(f'user {user_id} said: {text}')
         print(f'probando esto: {display_name_normalized}')
         try:
-            directory = 'app/slack_utils/data_messages'
+            directory = 'bolt_app/slack_utils/data_messages'
             if not os.path.exists(directory):
                 os.makedirs(directory) 
-            channel_info = app.client.conversations_info(channel=channel_id)
+            channel_info = bolt_app.client.conversations_info(channel=channel_id)
             channel_name = channel_info["channel"]["name"]
-            csv_file_path = f'app/slack_config/data_messages/channel_{channel_name}_messages.csv'
+            csv_file_path = f'bolt_app/slack_config/data_messages/channel_{channel_name}_messages.csv'
             existing_data = pd.read_csv(csv_file_path)
             if ('subtype' not in event or event['subtype'] != 'channel_join') and 'bot_id' not in event:
-                channel_info = app.client.conversations_info(channel=channel_id)
+                channel_info = bolt_app.client.conversations_info(channel=channel_id)
                 channel_name = channel_info["channel"]["name"]
                 text_tranlated = openai_connection.traducir_texto([text])[0]
                 text = text_tranlated.translate({ord(c): None for c in "!@#$%^&*()[]{};:,./<>?|`~-=_+'\""})
@@ -137,7 +137,7 @@ def handle_message(event, say):
         except Exception as e:
             print(f"Error opening file for channel {channel_id}: {e}")
             print(f"Getting messages for channel {channel_id}")
-            result = app.client.conversations_history(channel=channel_id)
+            result = bolt_app.client.conversations_history(channel=channel_id)
 
             if result['ok']:
                 conversation_history = result["messages"]
@@ -151,14 +151,14 @@ def handle_message(event, say):
                         text = re.sub(r'http\S+|www.\S+', '', text)
                         text = re.sub(r':[a-zA-Z0-9_+-]*:', '', text)
                         text = re.sub(r'\W+', ' ', text)
-                        channel_info = app.client.conversations_info(channel=channel_id)
+                        channel_info = bolt_app.client.conversations_info(channel=channel_id)
                         channel_name = channel_info["channel"]["name"]
                         mensajes.append(
                             {'channel': channel_id, 'user': user, 'text': text, 'ts': ts})
                         print("pase por aqui")                       
                     else:
                         print("Mensaje no contiene información de usuario:", mensaje)
-                channel_info = app.client.conversations_info(channel=channel_id)
+                channel_info = bolt_app.client.conversations_info(channel=channel_id)
                 channel_name = channel_info["channel"]["name"]
                 
 
@@ -170,22 +170,22 @@ def handle_message(event, say):
 
                 df = pd.DataFrame(mensajes)
                 df.to_csv(
-                    f'app/slack_config/data_messages/channel_{channel_name}_messages.csv', index=False)
+                    f'bolt_app/slack_config/data_messages/channel_{channel_name}_messages.csv', index=False)
             else:
                 print(
                     f"Error getting messages for channel {channel_id}: {result['error']}")
 
 
-@app.event("app_home_opened")
+@bolt_app.event("app_home_opened")
 def update_home_tab(client, event, logger):
 
     try:
         print(f"pase por aquí y le di click soy {event['user']}")
-        # views.publish is the method that your app uses to push a view to the Home tab
+        # views.publish is the method that your bolt_app uses to push a view to the Home tab
         client.views_publish(
-            # the user that opened your app's app home
+            # the user that opened your bolt_app's bolt_app home
             user_id=event["user"],
-            # the view object that appears in the app home
+            # the view object that appears in the bolt_app home
             view={
                 "type": "home",
                 "callback_id": "home_view",
@@ -346,11 +346,11 @@ def update_home_tab(client, event, logger):
         logger.error(f"Error publishing home tab: {e}")
 
 ################################################################################
-# app commands slack bolt ------------------------------------------------------
+# bolt_app commands slack bolt ------------------------------------------------------
 ################################################################################
 #region Commands
 
-@app.command("/chatgpt")
+@bolt_app.command("/chatgpt")
 def command_chat_gpt(ack, say, command):
     # Acknowledge the command right away
     ack()
@@ -363,14 +363,14 @@ def command_chat_gpt(ack, say, command):
     # Post the user's message and the response back to the same channel
     say(f"*Respuesta:* {reply}\n----------------")
     
-@app.command("/sentiment")
+@bolt_app.command("/sentiment")
 def command_sentimientos(ack,command,client):
     ack()
     texts = command['text']
     print(f"Received a message from user {texts}")
     return client.chat_postMessage(channel=command['channel_id'], text=texts, as_user=True)
 
-@app.command("/usuario-canal")
+@bolt_app.command("/usuario-canal")
 def command_resumen_sentimientos_usuario_canal(ack, say, command):
 
     ack()
@@ -381,7 +381,7 @@ def command_resumen_sentimientos_usuario_canal(ack, say, command):
     pass
 
 
-@app.command("/usuario-general")
+@bolt_app.command("/usuario-general")
 def command_resumen_sentimientos_usuario_general(ack, say, command):
 
     ack()
@@ -392,7 +392,7 @@ def command_resumen_sentimientos_usuario_general(ack, say, command):
     pass
 
 
-@app.command("/canal")
+@bolt_app.command("/canal")
 def command_resumen_sentimientos_canal(ack, say, command):
 
     ack()
@@ -403,7 +403,7 @@ def command_resumen_sentimientos_canal(ack, say, command):
     pass
 
 
-@app.command("/top-canal")
+@bolt_app.command("/top-canal")
 def resumen_top_canal(ack, say, command):
 
     ack()
@@ -414,7 +414,7 @@ def resumen_top_canal(ack, say, command):
     pass
 
 
-@app.command("/resumen")
+@bolt_app.command("/resumen")
 def resumen_contexto_canal(ack, say, command):
 
     ack()
@@ -425,10 +425,10 @@ def resumen_contexto_canal(ack, say, command):
     pass
 
 ################################################################################
-# app actions slack bolt -------------------------------------------------------
+# bolt_app actions slack bolt -------------------------------------------------------
 ################################################################################
 #region Actions
-@app.action("static_select-action")
+@bolt_app.action("static_select-action")
 def static_select(ack, body, client):
     ack()
     selected_option = body["actions"][0]["selected_option"]["value"]
@@ -671,7 +671,7 @@ def static_select(ack, body, client):
             channel=body["user"]["id"], text="No se seleccionó ninguna opción")
 
 
-@app.action("actionId-0")
+@bolt_app.action("actionId-0")
 def handle_some_action_zero(ack, body):
     ack()
     # canal que el usuario ha seleccionado
@@ -680,7 +680,7 @@ def handle_some_action_zero(ack, body):
     return selected_channel
 
 
-@app.action("actionId-1")
+@bolt_app.action("actionId-1")
 def handle_some_action_one(ack, body):
     ack()
     # usuario que el usuario ha seleccionado
@@ -689,7 +689,7 @@ def handle_some_action_one(ack, body):
     return selected_user
 
 
-@app.action("actionId-3")
+@bolt_app.action("actionId-3")
 def handle_some_action_option_two(ack, body):
     ack()
     # canal que el usuario ha seleccionado
@@ -697,28 +697,28 @@ def handle_some_action_option_two(ack, body):
     print(selected_user_two)
     return selected_user_two
 
-@app.action("actionId-4")
+@bolt_app.action("actionId-4")
 def handle_some_action_option_four(ack, body):
     ack()
     selected_channel_four = body["view"]["state"]["values"]["Lh2Uo"]["actionId-4"]["selected_channel"]
     print(selected_channel_four)
     return selected_channel_four
 
-@app.action("actionId-5")
+@bolt_app.action("actionId-5")
 def handle_some_action_option_five(ack, body):
     ack()  
     selected_channel_five = body['view']['state']['values']['omv1w']['actionId-5']['selected_channel']
     print(selected_channel_five)
     return selected_channel_five
 
-@app.action("actionId-6")
+@bolt_app.action("actionId-6")
 def handle_some_action_option_six(ack, body):
     ack()
     selected_channel_six = body["view"]["state"]["values"]["qjcrh"]["actionId-6"]["selected_channel"]
     print(selected_channel_six)
     return selected_channel_six
 
-@app.action("plain_text_input-action")
+@bolt_app.action("plain_text_input-action")
 def handle_some_action_option_six_label(ack, body,client):
     ack()    
     try:
@@ -749,11 +749,11 @@ def handle_some_action_option_six_label(ack, body,client):
         return None  # retorna None si el input no es un numero entre 5 y 200
 
 ################################################################################
-# app views slack bolt ---------------------------------------------------------
+# bolt_app views slack bolt ---------------------------------------------------------
 ################################################################################
 
 #region Views
-@app.view("option_one")
+@bolt_app.view("option_one")
 def handle_view_submission_events_option_one(ack, body,client):
     ack()
     # obtenemos los datos del canal y del usuario y lo guardamos en una variable la cual se retornara para ser enviada al modelo IA
@@ -793,7 +793,7 @@ def analyze_view_submission_information(information_options, user_id, real_name,
 
 def hello():
     return "Hello, World!"
-@app.view("option_two")
+@bolt_app.view("option_two")
 def handle_view_submission_events_option_two(ack, body,client):
     ack()
     information_options_two = handle_some_action_option_two(ack, body)
@@ -808,7 +808,7 @@ def handle_view_submission_events_option_two(ack, body,client):
     return information_options_two, user_id , real_name_two
 
 
-@app.view("option_three")
+@bolt_app.view("option_three")
 def handle_view_submission_events_option_three(ack, body):
     ack()
     option = 3
@@ -817,7 +817,7 @@ def handle_view_submission_events_option_three(ack, body):
     print(user_id)
     return option, user_id
 
-@app.view("option_four")
+@bolt_app.view("option_four")
 def handle_view_submission_events_option_four(ack, body):
     ack()
     information_options_four = handle_some_action_option_four(ack, body)
@@ -827,7 +827,7 @@ def handle_view_submission_events_option_four(ack, body):
     print(user_id)
     return information_options_four, user_id
 
-@app.view("option_five")
+@bolt_app.view("option_five")
 def handle_view_submission_events_option_five(ack, body):
     ack()
     information_options_five = handle_some_action_option_five(ack, body)
@@ -837,7 +837,7 @@ def handle_view_submission_events_option_five(ack, body):
     print(user_id)
     return information_options_five, user_id
 errors = {}
-@app.view("option_six")
+@bolt_app.view("option_six")
 def handle_view_submission_events_option_six(ack, body, client):
     ack()
     information_options_six = handle_some_action_option_six(ack, body), handle_some_action_option_six_label(ack, body, client)
@@ -849,49 +849,49 @@ def handle_view_submission_events_option_six(ack, body, client):
     return information_options_six, user_id 
 
 ################################################################################
-# flask app --------------------------------------------------------------------
+# flask bolt_app --------------------------------------------------------------------
 ################################################################################
 #region Flaskapp
-flask_app = Flask(__name__)
-handler = SlackRequestHandler(app)
+app = Flask(__name__)
+handler = SlackRequestHandler(bolt_app)
 
 
-@flask_app.route('/sentiment', methods=['Post'])
+@app.route('/sentiment', methods=['Post'])
 def sentiment():
     return handler.handle(request)
 
 
-@flask_app.route('/slack/open_modal', methods=['POST'])
+@app.route('/slack/open_modal', methods=['POST'])
 def modals():
     return handler.handle(request)
 
 
-@flask_app.route("/slack/events", methods=["POST"])
+@app.route("/slack/events", methods=["POST"])
 def slack_events():
     return handler.handle(request)
 
 
-@flask_app.route("/slack/commands", methods=["POST"])
+@app.route("/slack/commands", methods=["POST"])
 def slack_commands():
     return handler.handle(request)
 
 
-@flask_app.route("/slack/install", methods=["GET"])
+@app.route("/slack/install", methods=["GET"])
 def install():
     return handler.handle(request)
 
 
-@flask_app.route("/slack/oauth_redirect", methods=["GET"])
+@app.route("/slack/oauth_redirect", methods=["GET"])
 def oauth_redirect():
     return handler.handle(request)
 
-@flask_app.route("/chatgpt", methods=["POST"])
+@app.route("/chatgpt", methods=["POST"])
 def chatgpt():
     return handler.handle(request)
 
-@flask_app.route("/test", methods=["GET"])
+@app.route("/test", methods=["GET"])
 def test_endpoint():
     return "This is a test endpoint"
 
 if "__main__" == __name__:
-    flask_app.run(port=3000)
+    app.run(port=3000, host="0.0.0.0")
