@@ -116,12 +116,12 @@ def handle_message(event, say):
         print(f'user {user_id} said: {text}')
         print(f'probando esto: {display_name_normalized}')
         try:
-            directory = 'bolt_app/slack_utils/data_messages'
+            directory = 'app/slack_utils/data_messages'
             if not os.path.exists(directory):
                 os.makedirs(directory) 
             channel_info = bolt_app.client.conversations_info(channel=channel_id)
             channel_name = channel_info["channel"]["name"]
-            csv_file_path = f'bolt_app/slack_config/data_messages/channel_{channel_name}_messages.csv'
+            csv_file_path = f'app/slack_config/data_messages/channel_{channel_name}_messages.csv'
             existing_data = pd.read_csv(csv_file_path)
             if ('subtype' not in event or event['subtype'] != 'channel_join') and 'bot_id' not in event:
                 channel_info = bolt_app.client.conversations_info(channel=channel_id)
@@ -173,7 +173,7 @@ def handle_message(event, say):
 
                 df = pd.DataFrame(mensajes)
                 df.to_csv(
-                    f'bolt_app/slack_config/data_messages/channel_{channel_name}_messages.csv', index=False)
+                    f'app/slack_config/data_messages/channel_{channel_name}_messages.csv', index=False)
             else:
                 print(
                     f"Error getting messages for channel {channel_id}: {result['error']}")
