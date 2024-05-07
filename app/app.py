@@ -523,6 +523,7 @@ def handle_view_submission_events_option_one(ack, body):
     # obtenemos el id del usuario que ha enviado el formulario
     user_id = body["user"]["id"]
     
+
     print(information_options)
     print(user_id)
     return information_options, user_id
