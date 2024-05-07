@@ -12,6 +12,7 @@ from slack_bolt.adapter.flask import SlackRequestHandler
 from flask import Flask, request
 from slack_utils.open_ai_connection import OpenAIConnection
 from slack_utils.get_channels import get_channels
+from slack_utils.model import Model
 
 load_dotenv()
 
@@ -25,6 +26,7 @@ app = App(
 
 openai_connection = OpenAIConnection()
 channels = get_channels(app)
+model = Model()
 
 ################################################################################
 # app events slack bolt --------------------------------------------------------
