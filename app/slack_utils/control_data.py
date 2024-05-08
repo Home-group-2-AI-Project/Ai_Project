@@ -2,28 +2,11 @@ from collections import Counter
 import os
 import pandas as pd
 
-from model import Model
-from open_ai_connection import OpenAIConnection
-from app.app import handle_view_submission_events_option_one
-from app.app import handle_view_submission_events_option_two
-from app.app import handle_view_submission_events_option_four
-from app.app import handle_view_submission_events_option_five
-from app.app import handle_view_submission_events_option_six
-
+from slack_utils.model import Model
+from slack_utils.open_ai_connection import OpenAIConnection
 
 model = Model()
 gpt = OpenAIConnection()
-
-
-#llamar las funciones de app.py para obtener los datos de los eventos
-channel_name_option_one = handle_view_submission_events_option_one()[0][0]
-user_id_option_one = handle_view_submission_events_option_one()[0][1]
-user_id_option_two = handle_view_submission_events_option_two()[0]
-channel_name_option_four = handle_view_submission_events_option_four()[0]
-channel_name_option_five = handle_view_submission_events_option_five()[0]
-channel_name_option_six = handle_view_submission_events_option_six()[0][0]
-label_option_six = handle_view_submission_events_option_six()[0][1]
-
 
 # obtener todos los mensajes de un usuario en un canal
 def get_user_only_chanel(user_id, channel_name):
@@ -45,7 +28,7 @@ def get_user_all_channels(user_id):
     last_messages = messages[-5:]
     result = model.predict(messages)
     sentiment_percentages = sentiemnt_count(result)
-    response = gpt.resumen_sentimientos_usuario_general(user_id, sentiment_percentages, last_messages)
+    response = gpt.resumen_sentimientos_usuario_general(sentiment_percentages, last_messages)
     return response
 
 #obtener el sentimiento de todos los mensajes de todos los canales
