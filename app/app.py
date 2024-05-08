@@ -5,7 +5,6 @@ import re
 
 
 import pandas as pd
-import json
 
 from dotenv import load_dotenv
 from slack_bolt import App
@@ -18,6 +17,14 @@ from slack_utils.model import Model
 load_dotenv()
 
 SLACK_BOT_TOKEN = os.environ.get("SLACK_TOKEN")
+from slack_utils.control_data import (
+    get_user_only_chanel,
+    get_resume_conversation,
+    get_user_all_channels,
+    get_sentiment_all_channel,
+    get_sentiment_one_channel,
+    get_top_5_sentiment_one_channel
+)
 SLACK_SIGNING_SECRET = os.environ.get("SLACK_SIGNING_SECRET")
 
 bolt_app = App(
@@ -28,69 +35,6 @@ bolt_app = App(
 openai_connection = OpenAIConnection()
 channels = get_channels(bolt_app)
 model = Model()
-
-################################################################################
-# global variables responsive  --------------------------------------------------------
-################################################################################
-
-option_one_blocks =  [
-		{
-			"type": "section",
-			"text": {
-				"type": "mrkdwn",
-				"text": "You have a new request:\n*<fakeLink.toEmployeeProfile.com|Fred Enriquez - New device request>*"
-			}
-		},
-		{
-			"type": "section",
-			"fields": [
-				{
-					"type": "mrkdwn",
-					"text": "*Type:*\nComputer (laptop)"
-				},
-				{
-					"type": "mrkdwn",
-					"text": "*When:*\nSubmitted Aut 10"
-				},
-				{
-					"type": "mrkdwn",
-					"text": "*Last Update:*\nMar 10, 2015 (3 years, 5 months)"
-				},
-				{
-					"type": "mrkdwn",
-					"text": "*Reason:*\nAll vowel keys aren't working."
-				},
-				{
-					"type": "mrkdwn",
-					"text": "*Specs:*\n\"Cheetah Pro 15\" - Fast, really fast\""
-				}
-			]
-		},
-		{
-			"type": "actions",
-			"elements": [
-				{
-					"type": "button",
-					"text": {
-						"type": "plain_text",
-						"text": "Approve"
-					},
-					"style": "primary",
-					"value": "click_me_123"
-				},
-				{
-					"type": "button",
-					"text": {
-						"type": "plain_text",
-						"text": "Deny"
-					},
-					"style": "danger",
-					"value": "click_me_123"
-				}
-			]
-		}
-	]
-
 
 
 ################################################################################
@@ -116,12 +60,12 @@ def handle_message(event, say):
         print(f'user {user_id} said: {text}')
         print(f'probando esto: {display_name_normalized}')
         try:
-            directory = 'bolt_app/slack_utils/data_messages'
+            directory = 'app/slack_utils/data_messages'
             if not os.path.exists(directory):
                 os.makedirs(directory) 
             channel_info = bolt_app.client.conversations_info(channel=channel_id)
             channel_name = channel_info["channel"]["name"]
-            csv_file_path = f'bolt_app/slack_config/data_messages/channel_{channel_name}_messages.csv'
+            csv_file_path = f'app/slack_config/data_messages/channel_{channel_name}_messages.csv'
             existing_data = pd.read_csv(csv_file_path)
             if ('subtype' not in event or event['subtype'] != 'channel_join') and 'bot_id' not in event:
                 channel_info = bolt_app.client.conversations_info(channel=channel_id)
@@ -157,7 +101,7 @@ def handle_message(event, say):
                         channel_name = channel_info["channel"]["name"]
                         mensajes.append(
                             {'channel': channel_id, 'user': user, 'text': text, 'ts': ts})
-                        print("pase por aqui")                       
+                        #print("pase por aqui")                       
                     else:
                         print("Mensaje no contiene información de usuario:", mensaje)
                 channel_info = bolt_app.client.conversations_info(channel=channel_id)
@@ -173,7 +117,7 @@ def handle_message(event, say):
 
                 df = pd.DataFrame(mensajes)
                 df.to_csv(
-                    f'bolt_app/slack_config/data_messages/channel_{channel_name}_messages.csv', index=False)
+                    f'app/slack_config/data_messages/channel_{channel_name}_messages.csv', index=False)
             else:
                 print(
                     f"Error getting messages for channel {channel_id}: {result['error']}")
@@ -199,7 +143,7 @@ def update_home_tab(client, event, logger):
                         "type": "section",
                         "text": {
                             "type": "mrkdwn",
-                            "text": "Bot IA encargado de los sentimientos y otras tareas :computer: *Lee la descripcion de uso*, "
+                            "text": "Bot IA encargado de los sentimientos y otras tareas :computer: *Lee la descripción de uso*."
                         }
                     },
                     {
@@ -209,14 +153,24 @@ def update_home_tab(client, event, logger):
                         "type": "section",
                         "text": {
                             "type": "mrkdwn",
-                            "text": ":white_check_mark: *Descripcion*"
+                            "text": ":white_check_mark: *Descripción*."
                         }
                     },
                     {
                         "type": "section",
                         "text": {
                             "type": "mrkdwn",
-                            "text": "En las siguientes secciones aparecereran distintas configuraciones, en las cuales tu podras escoger que es lo que quieres que nuestra IA de sentimientos analice,* No te preocupes, cada una de ellas tendran un breve resumen de lo que hacen.*"
+                            "text": " :large_green_circle: En las siguientes secciones aparecerán distintas configuraciones, en las cuales tú podrás escoger qué es lo que quieres que nuestra IA de sentimientos analice. *No te preocupes, cada una de ellas tendrá un breve resumen de lo que hacen*."
+                        }
+                    },
+                    {
+                        "type": "divider"
+                    },
+                    {
+                        "type": "section",
+                        "text": {
+                            "type": "mrkdwn",
+                            "text": " :large_green_circle: Primero tendrás que seleccionar una de las opciones, posterior a eso y a llenar los datos correspondientes, en la sección de *Mensajes* de la parte superior, encontrarás tu respuesta. *Tranquilo, este es un chat privado entre tú y el bot :robot_face:*."
                         }
                     },
                     {
@@ -226,7 +180,7 @@ def update_home_tab(client, event, logger):
                         "type": "section",
                         "text": {
                             "type": "plain_text",
-                            "text": " :one: En esta opción, podras obtener un resumen de los sentimientos de un usuario en cierto canal(se tendran en cuenta todos los mensajes que el usuario haya enviado)."
+                            "text": ":one: En esta opción, podrás obtener un resumen de los sentimientos de un usuario en cierto canal (se tendrán en cuenta todos los mensajes que el usuario haya enviado)."
                         }
                     },
                     {
@@ -236,7 +190,7 @@ def update_home_tab(client, event, logger):
                         "type": "section",
                         "text": {
                             "type": "mrkdwn",
-                            "text": ":two: En esta opción, podras obtener un resumen de los sentimientos de un usuario en todos los canales(se tendran en cuenta todos los mensajes que el usuario haya enviado)."
+                            "text": ":two: En esta opción, podrás obtener un resumen de los sentimientos de un usuario en todos los canales (se tendrán en cuenta todos los mensajes que el usuario haya enviado)."
                         }
                     },
                     {
@@ -246,7 +200,7 @@ def update_home_tab(client, event, logger):
                         "type": "section",
                         "text": {
                             "type": "mrkdwn",
-                            "text": ":three: En esta opción, podras obtener un resumen de los sentimientos de todos los canales en general."
+                            "text": ":three: En esta opción, podrás obtener un resumen de los sentimientos de todos los canales en general."
                         }
                     },
                     {
@@ -256,7 +210,7 @@ def update_home_tab(client, event, logger):
                         "type": "section",
                         "text": {
                             "type": "mrkdwn",
-                            "text": ":four: En esta seccion, podras obtener un resumen general de los sentimientos de un canal en especifico."
+                            "text": ":four: En esta sección, podrás obtener un resumen general de los sentimientos de un canal en específico."
                         }
                     },
                     {
@@ -266,7 +220,7 @@ def update_home_tab(client, event, logger):
                         "type": "section",
                         "text": {
                             "type": "mrkdwn",
-                            "text": ":five: En esta opcion, podras obtener Top(5) sentimientos mas manejados en cierto canal, por todos los usuarios."
+                            "text": ":five: En esta opción, podrás obtener *Top(5)* sentimientos más manejados en cierto canal, por todos los usuarios."
                         }
                     },
                     {
@@ -276,7 +230,7 @@ def update_home_tab(client, event, logger):
                         "type": "section",
                         "text": {
                             "type": "mrkdwn",
-                            "text": ":six: En esta opcion, podras obtener un resumen de cierta cantidad de mensajes en cierto canal, para darte un contexto de lo que hablan los usuarios."
+                            "text": ":six: En esta opción, podrás obtener un resumen de cierta cantidad de mensajes en cierto canal, para darte un contexto de lo que hablan los usuarios."
                         }
                     },
                     {
@@ -286,7 +240,7 @@ def update_home_tab(client, event, logger):
                         "type": "section",
                         "text": {
                             "type": "mrkdwn",
-                            "text": "Selecciona una opcion de la lista que acabas de ver"
+                            "text": "Selecciona una opción de la lista que acabas de ver."
                         },
                         "accessory": {
                             "type": "static_select",
@@ -298,42 +252,42 @@ def update_home_tab(client, event, logger):
                                 {
                                     "text": {
                                         "type": "plain_text",
-                                        "text": "Opcion :one:"
+                                        "text": "Opción :one:"
                                     },
                                     "value": "value-0"
                                 },
                                 {
                                     "text": {
                                         "type": "plain_text",
-                                        "text": "Opcion :two:"
+                                        "text": "Opción :two:"
                                     },
                                     "value": "value-1"
                                 },
                                 {
                                     "text": {
                                         "type": "plain_text",
-                                        "text": "Opcion :three:"
+                                        "text": "Opción :three:"
                                     },
                                     "value": "value-2"
                                 },
                                 {
                                     "text": {
                                         "type": "plain_text",
-                                        "text": "Opcion :four:"
+                                        "text": "Opción :four:"
                                     },
                                     "value": "value-3"
                                 },
                                 {
                                     "text": {
                                         "type": "plain_text",
-                                        "text": "Opcion :five:"
+                                        "text": "Opción :five:"
                                     },
                                     "value": "value-4"
                                 },
                                 {
                                     "text": {
                                         "type": "plain_text",
-                                        "text": "Opcion :six:"
+                                        "text": "Opción :six:"
                                     },
                                     "value": "value-5"
                                 }
@@ -441,18 +395,18 @@ def static_select(ack, body, client):
                           view={
             "title": {
                 "type": "plain_text",
-                "text": "Opcion 1"
+                "text": "Opción 1"
             },
             "submit": {
                 "type": "plain_text",
-                "text": "Submit"
+                "text": "Enviar"
             },
             "blocks": [
                 {
                     "type": "section",
                     "text": {
                         "type": "mrkdwn",
-                        "text": " Aqui podras obtener un resumen de los sentimientos de un usuario en cierto canal *se tendran en cuenta todos los mensajes que el usuario haya enviado*."
+                        "text": "Aquí podrás obtener un resumen de los sentimientos de un usuario en cierto canal. *Se tendrán en cuenta todos los mensajes que el usuario haya enviado.*"
                     }
                 },
                 {
@@ -470,7 +424,7 @@ def static_select(ack, body, client):
                             "type": "users_select",
                             "placeholder": {
                                 "type": "plain_text",
-                                        "text": "Selecciona un usuario"
+                                "text": "Selecciona un usuario"
                             },
                             "action_id": "actionId-1"
                         }
@@ -481,26 +435,24 @@ def static_select(ack, body, client):
             "callback_id": "option_one"
         })
 
-        client.chat_postMessage(
-            channel=body["user"]["id"], text="Seleccionaste la opción 1" )
 
     elif selected_option == "value-1":
         client.views_open(trigger_id=body["trigger_id"],
                           view={
             "title": {
                 "type": "plain_text",
-                "text": "Opcion 2"
+                "text": "Opción 2"
             },
             "submit": {
                 "type": "plain_text",
-                "text": "Submit"
+                "text": "Enviar"
             },
             "blocks": [
                 {
                     "type": "section",
                     "text": {
                         "type": "mrkdwn",
-                        "text": " Aqui podras obtener un resumen de los sentimientos de un usuario en todos los canales *se tendran en cuenta todos los mensajes que el usuario haya enviado*."
+                        "text": "Aquí podrás obtener un resumen de los sentimientos de un usuario en todos los canales. *Se tendrán en cuenta todos los mensajes que el usuario haya enviado.*"
                     }
                 },
                 {
@@ -521,50 +473,47 @@ def static_select(ack, body, client):
             "callback_id": "option_two",
         })
 
-        client.chat_postMessage(
-            channel=body["user"]["id"], text="Seleccionaste la opción 2")
     elif selected_option == "value-2":
         client.views_open(trigger_id=body["trigger_id"],
                           view={
             "title": {
                 "type": "plain_text",
-                "text": "Opcion 3"
+                "text": "Opción 3"
             },
             "submit": {
                 "type": "plain_text",
-                "text": "Submit"
+                "text": "Enviar"
             },
             "blocks": [
                 {
                     "type": "section",
                     "text": {
                         "type": "mrkdwn",
-                        "text": " Aqui podras obtener un resumen de los sentimientos en todos los canales *se tendran en cuenta en limite de 100 mensajes por canal*."
+                        "text": " Aquí podrás obtener un resumen de los sentimientos en todos los canales. *Se tendrán en cuenta un límite de 100 mensajes por canal.*"
                     }
                 }
             ],
             "type": "modal",
             "callback_id": "option_three",
         })
-        client.chat_postMessage(
-            channel=body["user"]["id"], text="Seleccionaste la opción 3")
+
     elif selected_option == "value-3":
         client.views_open(trigger_id=body["trigger_id"],
                           view={
             "title": {
                 "type": "plain_text",
-                "text": "Opcion 4"
+                "text": "Opción 4"
             },
             "submit": {
                 "type": "plain_text",
-                "text": "Submit"
+                "text": "Enviar"
             },
             "blocks": [
                 {
                     "type": "section",
                     "text": {
                         "type": "mrkdwn",
-                        "text": " Aqui podras obtener un resumen general de los sentimientos de un canal en especifico. *se tendran en cuenta 200 mensajes para hacer este analisis*."
+                        "text": " Aquí podrás obtener un resumen general de los sentimientos de un canal específico. *Se tendrán en cuenta 200 mensajes para hacer este análisis.*"
                     }
                 },
                 {
@@ -584,25 +533,24 @@ def static_select(ack, body, client):
             "type": "modal",
             "callback_id": "option_four",
         })
-        client.chat_postMessage(
-            channel=body["user"]["id"], text="Seleccionaste la opción 4")
+
     elif selected_option == "value-4":
         client.views_open(trigger_id=body["trigger_id"],
                           view={
             "title": {
                 "type": "plain_text",
-                "text": "Opcion 5"
+                "text": "Opción 5"
             },
             "submit": {
                 "type": "plain_text",
-                "text": "Submit"
+                "text": "Enviar"
             },
             "blocks": [
                 {
                     "type": "section",
                     "text": {
                         "type": "mrkdwn",
-                        "text": " Aqui podras obtener un resuemn de cierta cantidad de mensajes, para obtener un contexto de la conversacion"
+                        "text": " Aquí podrás obtener un resumen de cierta cantidad de mensajes, para obtener un contexto de la conversación."
                     }
                 },
                 {
@@ -627,18 +575,18 @@ def static_select(ack, body, client):
                           view={
             "title": {
                 "type": "plain_text",
-                "text": "Opcion 5"
+                "text": "Opción 6"
             },
             "submit": {
                 "type": "plain_text",
-                "text": "Submit"
+                "text": "Enviar"
             },
             "blocks": [
                 {
                     "type": "section",
                     "text": {
                         "type": "mrkdwn",
-                        "text": " Aqui podras obtener el Top *5* sentimientos mas manejado en cierto canal."
+                        "text": " Aquí podrás obtener el Top *5* sentimientos más manejados en cierto canal."
                     }
                 },
                 {
@@ -649,7 +597,7 @@ def static_select(ack, body, client):
                     },
                     "label": {
                         "type": "plain_text",
-                        "text": "Escribe un numero de mensajes a analizar entre *5* y *200* "
+                        "text": "Escribe un número de mensajes a analizar entre *5* y *200*"
                     }
                 },
                 {
@@ -673,60 +621,70 @@ def static_select(ack, body, client):
         client.chat_postMessage(
             channel=body["user"]["id"], text="No se seleccionó ninguna opción")
 
-
+#region bolt_actions
 @bolt_app.action("actionId-0")
-def handle_some_action_zero(ack, body):
-    ack()
+def handle_some_action_zero(ack, body,client):
+    ack()   
     # canal que el usuario ha seleccionado
-    selected_channel = body["view"]["state"]["values"]["DIUt4"]["actionId-0"]["selected_channel"]
-    print(selected_channel)
-    return selected_channel
+    selected_channel = body["view"]["state"]["values"]["Z7U2a"]["actionId-0"]["selected_channel"]
+    channel_info = client.conversations_info(channel=selected_channel)
+    channel_name = channel_info["channel"]["name"]
+    print(channel_name)
+    return channel_name
 
 
 @bolt_app.action("actionId-1")
 def handle_some_action_one(ack, body):
     ack()
     # usuario que el usuario ha seleccionado
-    selected_user = body["view"]["state"]["values"]["DIUt4"]["actionId-1"]["selected_user"]
+    selected_user = body["view"]["state"]["values"]["Z7U2a"]["actionId-1"]["selected_user"]
     print(selected_user)
     return selected_user
 
 
 @bolt_app.action("actionId-3")
 def handle_some_action_option_two(ack, body):
-    ack()
+    ack()   
     # canal que el usuario ha seleccionado
-    selected_user_two = body["view"]["state"]["values"]["AAWCp"]["actionId-3"]["selected_user"]
+    selected_user_two = body["view"]["state"]["values"]["eVKQH"]["actionId-3"]["selected_user"]
     print(selected_user_two)
     return selected_user_two
 
 @bolt_app.action("actionId-4")
-def handle_some_action_option_four(ack, body):
+def handle_some_action_option_four(ack, body,client):
     ack()
-    selected_channel_four = body["view"]["state"]["values"]["Lh2Uo"]["actionId-4"]["selected_channel"]
-    print(selected_channel_four)
-    return selected_channel_four
+    
+    selected_channel_four = body["view"]["state"]["values"]["7PqfP"]["actionId-4"]["selected_channel"]
+    channels_info_four = client.conversations_info(channel=selected_channel_four)
+    channel_name_four = channels_info_four["channel"]["name"]
+    print(channel_name_four)
+    return channel_name_four
 
 @bolt_app.action("actionId-5")
-def handle_some_action_option_five(ack, body):
+def handle_some_action_option_five(ack, body,client):
     ack()  
-    selected_channel_five = body['view']['state']['values']['omv1w']['actionId-5']['selected_channel']
-    print(selected_channel_five)
-    return selected_channel_five
+    
+    selected_channel_five = body['view']['state']['values']['rw6ER']['actionId-5']['selected_channel']
+    channels_info_five = client.conversations_info(channel=selected_channel_five)
+    channel_name_five = channels_info_five["channel"]["name"]
+    print(channel_name_five)
+    return channel_name_five
 
 @bolt_app.action("actionId-6")
-def handle_some_action_option_six(ack, body):
+def handle_some_action_option_six(ack, body,client):
     ack()
-    selected_channel_six = body["view"]["state"]["values"]["qjcrh"]["actionId-6"]["selected_channel"]
-    print(selected_channel_six)
-    return selected_channel_six
+    selected_channel_six = body["view"]["state"]["values"]["k8wqP"]["actionId-6"]["selected_channel"]
+    channels_info_six = client.conversations_info(channel=selected_channel_six)
+    channel_name_six = channels_info_six["channel"]["name"]
+    print(channel_name_six)
+    return channel_name_six
 
 @bolt_app.action("plain_text_input-action")
 def handle_some_action_option_six_label(ack, body,client):
     ack()    
     try:
         #si el input es un numero entre 5 y 200 lo guardamos en una variable y lo retornamos
-        input_number = body["view"]["state"]["values"]["nLBoM"]["plain_text_input-action"]["value"]
+        input_number = body["view"]["state"]["values"]["AYvxe"]["plain_text_input-action"]["value"]
         input_number = int(input_number)
         print(input_number)
         return input_number # retorna el numero de mensajes a analizar
@@ -761,41 +719,67 @@ def handle_view_submission_events_option_one(ack, body,client):
     ack()
     # obtenemos los datos del canal y del usuario y lo guardamos en una variable la cual se retornara para ser enviada al modelo IA
     information_options = handle_some_action_zero(
-        ack, body), handle_some_action_one(ack, body)
+        ack, body,client), handle_some_action_one(ack, body)
     user_info = client.users_info(user=information_options[1])
     real_name = user_info["user"]["real_name"]
     print(f"estoy imprimiendo: {real_name}")
     # obtenemos el id del usuario que ha enviado el formulario
     user_id = body["user"]["id"]
-    print(user_id)
-    dic_info =  [
-		{
-			"type": "section",
-			"text": {
-				"type": "mrkdwn",
-				"text": f"This is a mrkdwn section block :ghost: {hello()} *this is bold*, and ~this is crossed out~, and <https://google.com|this is a link>"
-			}
-		},
-		{
-			"type": "section",
-			"text": {
-				"type": "plain_text",
-				"text": "This is a plain text section block."
-			}
-		}
-	]
+    user_info_submit = client.users_info(user=user_id)
+    user_submit_real_name = user_info_submit["user"]["real_name"]
+    print(user_info_submit)
+    option_one_blocks = [
+        {
+            "type": "section",
+            "text": {
+                "type": "mrkdwn",
+                "text": f"Hola {user_submit_real_name}, te escribo con la respuesta a la solicitud que creaste. :hand:"
+            }
+        },
+        {
+            "type": "divider"
+        },
+        {
+            "type": "section",
+            "text": {
+                "type": "mrkdwn",
+                "text": f"Recuerda que seleccionaste la opción: *Número :one:*, con estos datos: -canal: {information_options[0]}, -usuario: {real_name}."
+            }
+        },
+        {
+            "type": "section",
+            "text": {
+                "type": "mrkdwn",
+                "text": "En esta respuesta, podrás obtener un resumen de los sentimientos de un usuario en cierto canal (se tendrán en cuenta todos los mensajes que el usuario haya enviado)."
+            }
+        },
+        {
+            "type": "divider"
+        },
+        {
+            "type": "header",
+            "text": {
+                "type": "plain_text",
+                "text": "En base a tu selección se obtuvo:"
+            }
+        },
+        {
+            "type": "section",
+            "text": {
+                "type": "plain_text",
+                "text": ""
+            }
+        }
+    ]
     
-    #return information_options, user_id , real_name
-    return client.chat_postMessage(channel=user_id, blocks = option_one_blocks, as_user=True)
-    #return analyze_view_submission_information(information_options, user_id, real_name, client)
-    
-def analyze_view_submission_information(information_options, user_id, real_name, client):
-    # Realizar análisis y dar retroalimentación
-    response = openai_connection.chat_gpt("dame una lista de 10 animales herviboros")
-    return client.chat_postMessage(channel=user_id, text=response, as_user=True)
+    # Enviar el mensaje y capturar el resultado de get_user_only_chanel()
+    response = get_user_only_chanel(information_options[1], information_options[0])
+    option_one_blocks[-1]["text"]["text"] = response  # Actualizar el bloque con el resultado
 
-def hello():
-    return "Hello, World!"
+    # Enviar el mensaje con los bloques actualizados
+    client.chat_postMessage(channel=user_id, text="hola", blocks=option_one_blocks, as_user=True)
+       
+
 @bolt_app.view("option_two")
 def handle_view_submission_events_option_two(ack, body,client):
     ack()
@@ -807,49 +791,293 @@ def handle_view_submission_events_option_two(ack, body,client):
     print(f"estoy imprimiendo: {real_name_two}")
     # obtenemos el id del usuario que ha enviado el formulario
     user_id = body["user"]["id"]
+    user_info_submit_two = client.users_info(user=user_id)
+    user_submit_real_name_two = user_info_submit_two["user"]["real_name"]
     print(user_id)
-    return information_options_two, user_id , real_name_two
+    option_two_blocks = [
+		{
+			"type": "section",
+			"text": {
+				"type": "mrkdwn",
+				"text": f"Hola {user_submit_real_name_two}, te escribo con la respuesta a la solicitud que creaste. :hand:"
+			}
+		},
+		{
+			"type": "divider"
+		},
+		{
+			"type": "section",
+			"text": {
+				"type": "mrkdwn",
+				"text": f"Recuerda que seleccionaste la opción: *Número :two:*, con estos datos: -canal: {information_options_two} ."
+			}
+		},
+		{
+			"type": "section",
+			"text": {
+				"type": "mrkdwn",
+				"text": "En esta respuesta, podrás obtener un resumen de los sentimientos de un usuario en todos los canales *se tendrán en cuenta todos los mensajes que el usuario haya enviado*."
+			}
+		},
+		{
+			"type": "divider"
+		},
+		{
+			"type": "header",
+			"text": {
+				"type": "plain_text",
+				"text": "En base a tu selección se obtuvo:"
+			}
+		},
+		{
+			"type": "section",
+			"text": {
+				"type": "plain_text",
+				"text": ""
+			}
+		}
+	]
+    print(f"Usuario seleccionado: {information_options_two}")
+    response = get_user_all_channels(information_options_two)
+    option_two_blocks[-1]["text"]["text"] = response  # Actualizar el bloque con el resultado
+
+    # Enviar el mensaje con los bloques actualizados
+    client.chat_postMessage(channel=user_id, text="hola", blocks=option_two_blocks, as_user=True)
 
 
 @bolt_app.view("option_three")
-def handle_view_submission_events_option_three(ack, body):
+def handle_view_submission_events_option_three(ack, body,client):
     ack()
     option = 3
     # obtenemos el id del usuario que ha enviado el formulario
     user_id = body["user"]["id"]
+    user_info_submit_three = client.users_info(user=user_id)
+    user_submit_real_name_three = user_info_submit_three["user"]["real_name"]
     print(user_id)
-    return option, user_id
+    option_three_blocks = [
+		{
+			"type": "section",
+			"text": {
+				"type": "mrkdwn",
+				"text": f"Hola {user_submit_real_name_three}, te escribo con la respuesta a la solicitud que creaste. :hand:"
+			}
+		},
+		{
+			"type": "divider"
+		},
+		{
+			"type": "section",
+			"text": {
+				"type": "mrkdwn",
+				"text": f"Recuerda que seleccionaste la opción: *Número :three:*."
+			}
+		},
+		{
+			"type": "section",
+			"text": {
+				"type": "mrkdwn",
+				"text": "En esta respuesta, podrás obtener un *resumen de los sentimientos de todos los canales en general*."
+			}
+		},
+		{
+			"type": "divider"
+		},
+		{
+			"type": "header",
+			"text": {
+				"type": "plain_text",
+				"text": "En base a tu selección se obtuvo:"
+			}
+		},
+		{
+			"type": "section",
+			"text": {
+				"type": "plain_text",
+				"text": ""
+			}
+		}
+	]
+
+    response = get_sentiment_all_channel()
+    option_three_blocks[-1]["text"]["text"] = response 
+    client.chat_postMessage(channel=user_id, text="hola", blocks=option_three_blocks, as_user=True)
 
 @bolt_app.view("option_four")
-def handle_view_submission_events_option_four(ack, body):
+def handle_view_submission_events_option_four(ack, body,client):
     ack()
-    information_options_four = handle_some_action_option_four(ack, body)
+    information_options_four = handle_some_action_option_four(ack, body,client)
     print(f'Canal seleccionado: {information_options_four}')
     # obtenemos el id del usuario que ha enviado el formulario
     user_id = body["user"]["id"]
+    user_info_submit_four = client.users_info(user=user_id)
+    user_submit_real_name_four = user_info_submit_four["user"]["real_name"]
     print(user_id)
-    return information_options_four, user_id
+    option_four_blocks = [
+		{
+			"type": "section",
+			"text": {
+				"type": "mrkdwn",
+				"text": f"Hola {user_submit_real_name_four}, te escribo con la respuesta a la solicitud que creaste. :hand:"
+			}
+		},
+		{
+			"type": "divider"
+		},
+		{
+			"type": "section",
+			"text": {
+				"type": "mrkdwn",
+				"text": f"Recuerda que seleccionaste la opción: *Número :four:*,con estos datos: -canal:{information_options_four}"
+			}
+		},
+		{
+			"type": "section",
+			"text": {
+				"type": "mrkdwn",
+				"text": "En esta respuesta, podrás obtener un *resumen general de los sentimientos de un canal en específico*."
+			}
+		},
+		{
+			"type": "divider"
+		},
+		{
+			"type": "header",
+			"text": {
+				"type": "plain_text",
+				"text": "En base a tu selección se obtuvo:"
+			}
+		},
+		{
+			"type": "section",
+			"text": {
+				"type": "plain_text",
+				"text": "" 
+			}
+		}
+	]
+
+    response = get_sentiment_one_channel(information_options_four)
+    option_four_blocks[-1]["text"]["text"] = response 
+    client.chat_postMessage(channel=user_id, text="hola", blocks=option_four_blocks, as_user=True)
+    
 
 @bolt_app.view("option_five")
-def handle_view_submission_events_option_five(ack, body):
+def handle_view_submission_events_option_five(ack, body,client):
     ack()
-    information_options_five = handle_some_action_option_five(ack, body)
+    information_options_five = handle_some_action_option_five(ack, body,client)
     print(f'Canal seleccionado: {information_options_five}')
     # obtenemos el id del usuario que ha enviado el formulario
     user_id = body["user"]["id"]
+    user_info_submit_five = client.users_info(user=user_id)
+    user_submit_real_name_five = user_info_submit_five["user"]["real_name"]
+    
     print(user_id)
-    return information_options_five, user_id
+    option_five_blocks = [
+		{
+			"type": "section",
+			"text": {
+				"type": "mrkdwn",
+				"text": f"Hola {user_submit_real_name_five}, te escribo con la respuesta a la solicitud que creaste. :hand:"
+			}
+		},
+		{
+			"type": "divider"
+		},
+		{
+			"type": "section",
+			"text": {
+				"type": "mrkdwn",
+				"text": f"Recuerda que seleccionaste la opción: *Número cinco*, con estos datos: -canal:{information_options_five}."
+			}
+		},
+		{
+			"type": "section",
+			"text": {
+				"type": "mrkdwn",
+				"text": "En esta respuesta, podrás obtener *Top(5) sentimientos más manejados en cierto canal, por todos los usuarios*."
+			}
+		},
+		{
+			"type": "divider"
+		},
+		{
+			"type": "header",
+			"text": {
+				"type": "plain_text",
+				"text": "En base a tu selección se obtuvo:"
+			}
+		},
+		{
+			"type": "section",
+			"text": {
+				"type": "plain_text",
+				"text": ""
+			}
+		}
+	]
+
+    response = get_top_5_sentiment_one_channel(information_options_five)
+    option_five_blocks[-1]["text"]["text"] = response 
+    client.chat_postMessage(channel=user_id, text="hola", blocks=option_five_blocks, as_user=True)
 errors = {}
 @bolt_app.view("option_six")
 def handle_view_submission_events_option_six(ack, body, client):
     ack()
-    information_options_six = handle_some_action_option_six(ack, body), handle_some_action_option_six_label(ack, body, client)
+    information_options_six = handle_some_action_option_six(ack, body,client), handle_some_action_option_six_label(ack, body, client)
     print(information_options_six)
+    count = information_options_six[1]
     # obtenemos el id del usuario que ha enviado el formulario
-    user_id = body["user"]["id"]        
-    # retorna el canal seleccionado y el numero de mensajes a analizar en la variable information_options_six
+    user_id = body["user"]["id"]
+    user_info_submit_six = client.users_info(user=user_id)
+    user_submit_real_name_six = user_info_submit_six["user"]["real_name"]        
+    option_six_blocks = [
+		{
+			"type": "section",
+			"text": {
+				"type": "mrkdwn",
+				"text": f"Hola {user_submit_real_name_six}, te escribo con la respuesta a la solicitud que creaste. :hand:"
+			}
+		},
+		{
+			"type": "divider"
+		},
+		{
+			"type": "section",
+			"text": {
+				"type": "mrkdwn",
+				"text": f"Recuerda que seleccionaste la opción: *Número :six:*, con estos datos: -canal{information_options_six} y -numero de mensajes: {count}."
+			}
+		},
+		{
+			"type": "section",
+			"text": {
+				"type": "mrkdwn",
+				"text": f"En esta respuesta, podrás obtener un *resumen de cierta cantidad de mensajes {count} en cierto canal, para darte un contexto de lo que hablan los usuarios*."
+			}
+		},
+		{
+			"type": "divider"
+		},
+		{
+			"type": "header",
+			"text": {
+				"type": "plain_text",
+				"text": "En base a tu selección se obtuvo:"
+			}
+		},
+		{
+			"type": "section",
+			"text": {
+				"type": "plain_text",
+				"text": ""
+			}
+		}
+	]
+
     # y el id del usuario que ha enviado el formulario
-    return information_options_six, user_id 
+    response = get_resume_conversation(information_options_six[0], information_options_six[1])
+    option_six_blocks[-1]["text"]["text"] = response 
+    client.chat_postMessage(channel=user_id, text="hola", blocks=option_six_blocks, as_user=True)
 
 ################################################################################
 # flask bolt_app --------------------------------------------------------------------
@@ -897,4 +1125,5 @@ def test_endpoint():
     return "This is a test endpoint"
 
 if "__main__" == __name__:
-    app.run(port=3000, host="0.0.0.0")
+    app.run(debug=True)
+    #app.run(port=3000, host="0.0.0.0")

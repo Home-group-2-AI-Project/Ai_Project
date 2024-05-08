@@ -2,8 +2,8 @@ from collections import Counter
 import os
 import pandas as pd
 
-from model import Model
-from open_ai_connection import OpenAIConnection
+from slack_utils.model import Model
+from slack_utils.open_ai_connection import OpenAIConnection
 
 model = Model()
 gpt = OpenAIConnection()
@@ -13,46 +13,44 @@ def get_user_only_chanel(user_id, channel_name):
     df = get_menssages_only_chanel(channel_name)
     df = df[df['user'] == user_id]
     messages = df['text'].tolist()
-    
-    response = gpt.traducir_texto(messages)
-
-    #result = model.predict(messages)
-    
-    #sentiment_percentages = sentiemnt_count(result)
-    #print(sentiment_percentages)
+    last_messages = messages[-5:]
+    result = model.predict(messages)
+    sentiment_percentages = sentiemnt_count(result)
+    response = gpt.resumen_sentimientos_usuario_canal(user_id, channel_name, sentiment_percentages, last_messages)
     print(response)
+    return response
 
 #obtener todos los mensajes de un usuario en todos los canales
 def get_user_all_channels(user_id):
     df = get_all_channel()
     df = df[df['user'] == user_id]
     messages = df['text'].tolist()
-
+    last_messages = messages[-5:]
     result = model.predict(messages)
     sentiment_percentages = sentiemnt_count(result)
-    print(sentiment_percentages)
-    print(result)
+    response = gpt.resumen_sentimientos_usuario_general(sentiment_percentages, last_messages)
+    return response
 
 #obtener el sentimiento de todos los mensajes de todos los canales
 def get_sentiment_all_channel():
     df = get_all_channel()
     messages = df['text'].tolist()
-
     result = model.predict(messages)
     sentiment_percentages = sentiemnt_count(result)
-    print(sentiment_percentages)
-    print(result)
+    response = gpt.resumen_sentimientos_todos_canales_general(sentiment_percentages)
+    print(response) 
+    return response
 
 #obtener el sentimiento de todos los mensajes de un canal
 def get_sentiment_one_channel(channel_name):
     df = get_menssages_only_chanel(channel_name)
     messages = df['text'].tolist()
-
     result = model.predict(messages)
     sentiment_percentages = sentiemnt_count(result)
-    print(sentiment_percentages)
+    response = gpt.resumen_sentimientos_canal(channel_name, sentiment_percentages)
+    print(response)
+    return response
 
-    print(result)
 #obtener el top 5 de sentimientos de todos los mensajes de un canal
 def get_top_5_sentiment_one_channel(channel_name):
     df = get_menssages_only_chanel(channel_name)
@@ -63,8 +61,9 @@ def get_top_5_sentiment_one_channel(channel_name):
     sentiments = [sentiment for _, sentiment in result]
     sentiment_counts = Counter(sentiments)
     top_5_sentiments = sentiment_counts.most_common(5)
-
-    print(top_5_sentiments)
+    response = gpt.resumen_top_5_sentimientos_canal(channel_name, top_5_sentiments)
+    print(response)
+    return response
 
 #obtener resumen de la conversacion de un canal
 def get_resume_conversation(channel_name, countMessages):
@@ -74,7 +73,8 @@ def get_resume_conversation(channel_name, countMessages):
     df = get_menssages_only_chanel(channel_name)
     df = df.head(countMessages)
     messages = df['text'].tolist()
-    print(messages)
+    response = gpt.resumen_contexto_ultimos_mensajes(channel_name, messages)
+    return response
 
 
 def get_menssages_only_chanel(channel_name):
@@ -86,7 +86,7 @@ def get_menssages_only_chanel(channel_name):
 def get_all_channel():
     current_dir = os.path.dirname(os.path.abspath(__file__))
     csv_path = os.path.join(current_dir, f'../slack_config/Data_messages')
-    channel_names = [name.replace('channel_', '').replace('_messages.csv', '') for name in os.listdir(csv_path)]
+    channel_names = [name.replace('channel_', '').replace('_messages.csv', '') for name in os.listdir(csv_path) if name.endswith('_messages.csv') and not name.endswith('.gitkeep_messages.csv')]
     
     all_messages = pd.DataFrame()
     for channel_name in channel_names:
@@ -108,9 +108,9 @@ def sentiemnt_count(result_model):
     return sentiment_percentages
 
 if __name__ == '__main__':
-    get_user_only_chanel('U070C5QQS5U', 'varios')
+    get_user_only_chanel('U070C5QQS5U', 'U070C5QQS5U')
     #get_user_all_channels('U071GEQ4J13')
     #get_sentiment_all_channel()
-    #get_top_5_sentiment_one_channel('varios')
     #get_sentiment_one_channel('varios')
-    #get_resume_conversation('varios', 6)
+    #get_top_5_sentiment_one_channel('varios')
+    get_resume_conversation('varios', 6)
