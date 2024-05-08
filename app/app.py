@@ -5,7 +5,6 @@ import re
 
 
 import pandas as pd
-import json
 
 from dotenv import load_dotenv
 from slack_bolt import App
@@ -18,6 +17,14 @@ from slack_utils.model import Model
 load_dotenv()
 
 SLACK_BOT_TOKEN = os.environ.get("SLACK_TOKEN")
+from slack_utils.control_data import (
+    get_user_only_chanel,
+    get_resume_conversation,
+    get_user_all_channels,
+    get_sentiment_all_channel,
+    get_sentiment_one_channel,
+    get_top_5_sentiment_one_channel
+)
 SLACK_SIGNING_SECRET = os.environ.get("SLACK_SIGNING_SECRET")
 
 bolt_app = App(
@@ -722,12 +729,15 @@ def handle_view_submission_events_option_one(ack, body,client):
     print(f"estoy imprimiendo: {real_name}")
     # obtenemos el id del usuario que ha enviado el formulario
     user_id = body["user"]["id"]
+    user_info_submit = client.users_info(user=user_id)
+    user_submit_real_name = user_info_submit["user"]["real_name"]
+    print(user_info_submit)
     option_one_blocks = [
         {
             "type": "section",
             "text": {
                 "type": "mrkdwn",
-                "text": f"Hola @{user_id}, te escribo con la respuesta a la solicitud que creaste. :hand:"
+                "text": f"Hola {user_submit_real_name}, te escribo con la respuesta a la solicitud que creaste. :hand:"
             }
         },
         {
@@ -765,17 +775,14 @@ def handle_view_submission_events_option_one(ack, body,client):
             }
         }
     ]
-    message = client.chat_postMessage(channel=user_id, blocks = option_one_blocks, as_user=True)
-    print(user_id)
-    return information_options, user_id , real_name, message
-    #return client.chat_postMessage(channel=user_id, blocks = option_one_blocks, as_user=True)
-    #return analyze_view_submission_information(information_options, user_id, real_name, client)
-       
-def analyze_view_submission_information(information_options, user_id, real_name, client):
-    # Realizar análisis y dar retroalimentación
-    response = openai_connection.chat_gpt("dame una lista de 10 animales herviboros")
-    return client.chat_postMessage(channel=user_id, text=response, as_user=True)
+    
+    # Enviar el mensaje y capturar el resultado de get_user_only_chanel()
+    response = get_user_only_chanel(information_options[1], information_options[0])
+    option_one_blocks[-1]["text"]["text"] = response  # Actualizar el bloque con el resultado
 
+    # Enviar el mensaje con los bloques actualizados
+    client.chat_postMessage(channel=user_id, text="hola", blocks=option_one_blocks, as_user=True)
+       
 
 @bolt_app.view("option_two")
 def handle_view_submission_events_option_two(ack, body,client):
@@ -788,18 +795,116 @@ def handle_view_submission_events_option_two(ack, body,client):
     print(f"estoy imprimiendo: {real_name_two}")
     # obtenemos el id del usuario que ha enviado el formulario
     user_id = body["user"]["id"]
+    user_info_submit_two = client.users_info(user=user_id)
+    user_submit_real_name_two = user_info_submit_two["user"]["real_name"]
     print(user_id)
-    return information_options_two, user_id , real_name_two
+    option_two_blocks = [
+		{
+			"type": "section",
+			"text": {
+				"type": "mrkdwn",
+				"text": f"Hola {user_submit_real_name_two}, te escribo con la respuesta a la solicitud que creeaste. :hand:"
+			}
+		},
+		{
+			"type": "divider"
+		},
+		{
+			"type": "section",
+			"text": {
+				"type": "mrkdwn",
+				"text": "Recuerda que seleccionaste la opcion: *Numero :two:*."
+			}
+		},
+		{
+			"type": "section",
+			"text": {
+				"type": "mrkdwn",
+				"text": "En esta respuesta, podras obtener un resumen de los sentimientos de un usuario en todos los canales *se tendran en cuenta todos los mensajes que el usuario haya enviado*."
+			}
+		},
+		{
+			"type": "divider"
+		},
+		{
+			"type": "header",
+			"text": {
+				"type": "plain_text",
+				"text": "En base a tu seleccion se obtuvo:"
+			}
+		},
+		{
+			"type": "section",
+			"text": {
+				"type": "plain_text",
+				"text": "aqui va llamada la respuesta de CHatgpt y la IA."
+			}
+		}
+	]
+    print(f"Usuario seleccionado: {information_options_two}")
+    response = get_user_all_channels(information_options_two)
+    option_two_blocks[-1]["text"]["text"] = response  # Actualizar el bloque con el resultado
+
+    # Enviar el mensaje con los bloques actualizados
+    client.chat_postMessage(channel=user_id, text="hola", blocks=option_two_blocks, as_user=True)
 
 
 @bolt_app.view("option_three")
-def handle_view_submission_events_option_three(ack, body):
+def handle_view_submission_events_option_three(ack, body,client):
     ack()
     option = 3
     # obtenemos el id del usuario que ha enviado el formulario
     user_id = body["user"]["id"]
+    user_info_submit_three = client.users_info(user=user_id)
+    user_submit_real_name_three = user_info_submit_three["user"]["real_name"]
     print(user_id)
-    return option, user_id
+    option_three_blocks = [
+		{
+			"type": "section",
+			"text": {
+				"type": "mrkdwn",
+				"text": f"Hola {user_submit_real_name_three}, te escribo con la respuesta a la solicitud que creeaste. :hand:"
+			}
+		},
+		{
+			"type": "divider"
+		},
+		{
+			"type": "section",
+			"text": {
+				"type": "mrkdwn",
+				"text": "Recuerda que seleccionaste la opcion: *Numero :three:*."
+			}
+		},
+		{
+			"type": "section",
+			"text": {
+				"type": "mrkdwn",
+				"text": "En esta respuesta, podras obtener un *resumen de los sentimientos de todos los canales en general*."
+			}
+		},
+		{
+			"type": "divider"
+		},
+		{
+			"type": "header",
+			"text": {
+				"type": "plain_text",
+				"text": "En base a tu seleccion se obtuvo:"
+			}
+		},
+		{
+			"type": "section",
+			"text": {
+				"type": "plain_text",
+				"text": ""
+			}
+		}
+	]
+
+    response = get_sentiment_all_channel()
+    option_three_blocks[-1]["text"]["text"] = response 
+    client.chat_postMessage(channel=user_id, text="hola", blocks=option_three_blocks, as_user=True)
 
 @bolt_app.view("option_four")
 def handle_view_submission_events_option_four(ack, body,client):
@@ -808,8 +913,57 @@ def handle_view_submission_events_option_four(ack, body,client):
     print(f'Canal seleccionado: {information_options_four}')
     # obtenemos el id del usuario que ha enviado el formulario
     user_id = body["user"]["id"]
+    user_info_submit_four = client.users_info(user=user_id)
+    user_submit_real_name_four = user_info_submit_four["user"]["real_name"]
     print(user_id)
-    return information_options_four, user_id
+    option_four_blocks = [
+		{
+			"type": "section",
+			"text": {
+				"type": "mrkdwn",
+				"text": f"Hola {user_submit_real_name_four}, te escribo con la respuesta a la solicitud que creeaste. :hand:"
+			}
+		},
+		{
+			"type": "divider"
+		},
+		{
+			"type": "section",
+			"text": {
+				"type": "mrkdwn",
+				"text": "Recuerda que seleccionaste la opcion: *Numero :four:*."
+			}
+		},
+		{
+			"type": "section",
+			"text": {
+				"type": "mrkdwn",
+				"text": "En esta respuesta, podras obtener un *resumen general de los sentimientos de un canal en especifico*."
+			}
+		},
+		{
+			"type": "divider"
+		},
+		{
+			"type": "header",
+			"text": {
+				"type": "plain_text",
+				"text": "En base a tu seleccion se obtuvo:"
+			}
+		},
+		{
+			"type": "section",
+			"text": {
+				"type": "plain_text",
+				"text": "" 
+			}
+		}
+	]
+
+    response = get_sentiment_one_channel(information_options_four)
+    option_four_blocks[-1]["text"]["text"] = response 
+    client.chat_postMessage(channel=user_id, text="hola", blocks=option_four_blocks, as_user=True)
+    
 
 @bolt_app.view("option_five")
 def handle_view_submission_events_option_five(ack, body,client):
@@ -818,24 +972,116 @@ def handle_view_submission_events_option_five(ack, body,client):
     print(f'Canal seleccionado: {information_options_five}')
     # obtenemos el id del usuario que ha enviado el formulario
     user_id = body["user"]["id"]
+    user_info_submit_five = client.users_info(user=user_id)
+    user_submit_real_name_five = user_info_submit_five["user"]["real_name"]
+    
     print(user_id)
-    return information_options_five, user_id
+    option_five_blocks = [
+		{
+			"type": "section",
+			"text": {
+				"type": "mrkdwn",
+				"text": f"Hola {user_submit_real_name_five}, te escribo con la respuesta a la solicitud que creeaste. :hand:"
+			}
+		},
+		{
+			"type": "divider"
+		},
+		{
+			"type": "section",
+			"text": {
+				"type": "mrkdwn",
+				"text": "Recuerda que seleccionaste la opcion: *Numero :five:*."
+			}
+		},
+		{
+			"type": "section",
+			"text": {
+				"type": "mrkdwn",
+				"text": "En esta respuesta, podras obtener *Top(5) sentimientos mas manejados en cierto canal, por todos los usuarios*."
+			}
+		},
+		{
+			"type": "divider"
+		},
+		{
+			"type": "header",
+			"text": {
+				"type": "plain_text",
+				"text": "En base a tu seleccion se obtuvo:"
+			}
+		},
+		{
+			"type": "section",
+			"text": {
+				"type": "plain_text",
+				"text": ""
+			}
+		}
+	]
+
+    response = get_top_5_sentiment_one_channel(information_options_five)
+    option_five_blocks[-1]["text"]["text"] = response 
+    client.chat_postMessage(channel=user_id, text="hola", blocks=option_five_blocks, as_user=True)
 errors = {}
 @bolt_app.view("option_six")
 def handle_view_submission_events_option_six(ack, body, client):
     ack()
     information_options_six = handle_some_action_option_six(ack, body,client), handle_some_action_option_six_label(ack, body, client)
     print(information_options_six)
+    count = information_options_six[1]
     # obtenemos el id del usuario que ha enviado el formulario
-    user_id = body["user"]["id"]        
-    # retorna el canal seleccionado y el numero de mensajes a analizar en la variable information_options_six
+    user_id = body["user"]["id"]
+    user_info_submit_six = client.users_info(user=user_id)
+    user_submit_real_name_six = user_info_submit_six["user"]["real_name"]        
+    option_six_blocks = [
+		{
+			"type": "section",
+			"text": {
+				"type": "mrkdwn",
+				"text": f"Hola {user_submit_real_name_six}, te escribo con la respuesta a la solicitud que creeaste. :hand:"
+			}
+		},
+		{
+			"type": "divider"
+		},
+		{
+			"type": "section",
+			"text": {
+				"type": "mrkdwn",
+				"text": "Recuerda que seleccionaste la opcion: *Numero :six:*."
+			}
+		},
+		{
+			"type": "section",
+			"text": {
+				"type": "mrkdwn",
+				"text": f"En esta respuesta, podras obtener un *resumen de cierta cantidad de mensajes {count} en cierto canal, para darte un contexto de lo que hablan los usuarios.*"
+			}
+		},
+		{
+			"type": "divider"
+		},
+		{
+			"type": "header",
+			"text": {
+				"type": "plain_text",
+				"text": "En base a tu seleccion se obtuvo:"
+			}
+		},
+		{
+			"type": "section",
+			"text": {
+				"type": "plain_text",
+				"text": ""
+			}
+		}
+	]
+
     # y el id del usuario que ha enviado el formulario
-    return information_options_six, user_id 
-
-
-################################################################################
-# global variables responsive  --------------------------------------------------------
-################################################################################
+    response = get_resume_conversation(information_options_six[0], information_options_six[1])
+    option_six_blocks[-1]["text"]["text"] = response 
+    client.chat_postMessage(channel=user_id, text="hola", blocks=option_six_blocks, as_user=True)
 
 ################################################################################
 # flask bolt_app --------------------------------------------------------------------
