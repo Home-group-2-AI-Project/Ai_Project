@@ -31,7 +31,7 @@ def get_user_all_channels(user_id):
     last_messages = messages[-5:]
     result = model.predict(messages)
     sentiment_percentages = sentiemnt_count(result)
-    response = gpt.resumen_sentimientos_usuario_general(user_id, sentiment_percentages, last_messages)
+    response = gpt.resumen_sentimientos_usuario_general(sentiment_percentages, last_messages)
     return response
 
 #obtener el sentimiento de todos los mensajes de todos los canales
