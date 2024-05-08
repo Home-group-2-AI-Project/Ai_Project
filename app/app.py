@@ -5,7 +5,6 @@ import re
 
 
 import pandas as pd
-import json
 
 from dotenv import load_dotenv
 from slack_bolt import App
@@ -18,6 +17,14 @@ from slack_utils.model import Model
 load_dotenv()
 
 SLACK_BOT_TOKEN = os.environ.get("SLACK_TOKEN")
+from slack_utils.control_data import (
+    get_user_only_chanel,
+    get_resume_conversation,
+    get_user_all_channels,
+    get_sentiment_all_channel,
+    get_sentiment_one_channel,
+    get_top_5_sentiment_one_channel
+)
 SLACK_SIGNING_SECRET = os.environ.get("SLACK_SIGNING_SECRET")
 
 bolt_app = App(
@@ -94,7 +101,7 @@ def handle_message(event, say):
                         channel_name = channel_info["channel"]["name"]
                         mensajes.append(
                             {'channel': channel_id, 'user': user, 'text': text, 'ts': ts})
-                        print("pase por aqui")                       
+                        #print("pase por aqui")                       
                     else:
                         print("Mensaje no contiene información de usuario:", mensaje)
                 channel_info = bolt_app.client.conversations_info(channel=channel_id)
@@ -153,20 +160,18 @@ def update_home_tab(client, event, logger):
                         "type": "section",
                         "text": {
                             "type": "mrkdwn",
-                            "text": "En las siguientes secciones aparecereran distintas configuraciones, en las cuales tu podras escoger que es lo que quieres que nuestra IA de sentimientos analice,* No te preocupes, cada una de ellas tendran un breve resumen de lo que hacen.*"
+                            "text": " :large_green_circle: En las siguientes secciones aparecereran distintas configuraciones, en las cuales tu podras escoger que es lo que quieres que nuestra IA de sentimientos analice,* No te preocupes, cada una de ellas tendran un breve resumen de lo que hacen.*"
                         }
                     },
                     {
                         "type": "divider"
                     },
                     {
-                        "type": "image",
-                        "title": {
-                            "type": "plain_text",
-                            "text": "image1"
-                        },
-                        "image_url": "app/slack_config/messages_info.jpg",
-                        "alt_text": "image1"
+                        "type": "section",
+                        "text": {
+                            "type": "mrkdwn",
+                            "text": " :large_green_circle: Primero tendras que seleccionar una de las opciones, posterior a eso y a llenar los datos corresponientes, en la seccion de *Mensajes* de la parte superior, encontraras tu respuesta,*tranquilo, este es un chat privado entre tu y el bot :robot_face:.*"
+                        }
                     },
                     {
                         "type": "divider"
@@ -215,7 +220,7 @@ def update_home_tab(client, event, logger):
                         "type": "section",
                         "text": {
                             "type": "mrkdwn",
-                            "text": ":five: En esta opcion, podras obtener Top(5) sentimientos mas manejados en cierto canal, por todos los usuarios."
+                            "text": ":five: En esta opcion, podras obtener *Top(5)* sentimientos mas manejados en cierto canal, por todos los usuarios."
                         }
                     },
                     {
@@ -394,7 +399,7 @@ def static_select(ack, body, client):
             },
             "submit": {
                 "type": "plain_text",
-                "text": "Submit"
+                "text": "Enviar"
             },
             "blocks": [
                 {
@@ -442,7 +447,7 @@ def static_select(ack, body, client):
             },
             "submit": {
                 "type": "plain_text",
-                "text": "Submit"
+                "text": "Enviar"
             },
             "blocks": [
                 {
@@ -481,7 +486,7 @@ def static_select(ack, body, client):
             },
             "submit": {
                 "type": "plain_text",
-                "text": "Submit"
+                "text": "Enviar"
             },
             "blocks": [
                 {
@@ -506,7 +511,7 @@ def static_select(ack, body, client):
             },
             "submit": {
                 "type": "plain_text",
-                "text": "Submit"
+                "text": "Enviar"
             },
             "blocks": [
                 {
@@ -544,7 +549,7 @@ def static_select(ack, body, client):
             },
             "submit": {
                 "type": "plain_text",
-                "text": "Submit"
+                "text": "Enviar"
             },
             "blocks": [
                 {
@@ -580,7 +585,7 @@ def static_select(ack, body, client):
             },
             "submit": {
                 "type": "plain_text",
-                "text": "Submit"
+                "text": "Enviar"
             },
             "blocks": [
                 {
@@ -622,14 +627,16 @@ def static_select(ack, body, client):
         client.chat_postMessage(
             channel=body["user"]["id"], text="No se seleccionó ninguna opción")
 
-
+#region bolt_actions
 @bolt_app.action("actionId-0")
-def handle_some_action_zero(ack, body):
+def handle_some_action_zero(ack, body,client):
     ack()
     # canal que el usuario ha seleccionado
     selected_channel = body["view"]["state"]["values"]["DIUt4"]["actionId-0"]["selected_channel"]
-    print(selected_channel)
-    return selected_channel
+    channel_info = client.conversations_info(channel=selected_channel)
+    channel_name = channel_info["channel"]["name"]
+    print(channel_name)
+    return channel_name
 
 
 @bolt_app.action("actionId-1")
@@ -650,25 +657,31 @@ def handle_some_action_option_two(ack, body):
     return selected_user_two
 
 @bolt_app.action("actionId-4")
-def handle_some_action_option_four(ack, body):
+def handle_some_action_option_four(ack, body,client):
     ack()
     selected_channel_four = body["view"]["state"]["values"]["Lh2Uo"]["actionId-4"]["selected_channel"]
-    print(selected_channel_four)
-    return selected_channel_four
+    channels_info_four = client.conversations_info(channel=selected_channel_four)
+    channel_name_four = channels_info_four["channel"]["name"]
+    print(channel_name_four)
+    return channel_name_four
 
 @bolt_app.action("actionId-5")
-def handle_some_action_option_five(ack, body):
+def handle_some_action_option_five(ack, body,client):
     ack()  
-    selected_channel_five = body['view']['state']['values']['omv1w']['actionId-5']['selected_channel']
-    print(selected_channel_five)
-    return selected_channel_five
+    selected_channel_five = body['view']['state']['values']['IEGw0']['actionId-5']['selected_channel']
+    channels_info_five = client.conversations_info(channel=selected_channel_five)
+    channel_name_five = channels_info_five["channel"]["name"]
+    print(channel_name_five)
+    return channel_name_five
 
 @bolt_app.action("actionId-6")
-def handle_some_action_option_six(ack, body):
+def handle_some_action_option_six(ack, body,client):
     ack()
     selected_channel_six = body["view"]["state"]["values"]["qjcrh"]["actionId-6"]["selected_channel"]
-    print(selected_channel_six)
-    return selected_channel_six
+    channels_info_six = client.conversations_info(channel=selected_channel_six)
+    channel_name_six = channels_info_six["channel"]["name"]
+    print(channel_name_six)
+    return channel_name_six
 
 @bolt_app.action("plain_text_input-action")
 def handle_some_action_option_six_label(ack, body,client):
@@ -710,18 +723,21 @@ def handle_view_submission_events_option_one(ack, body,client):
     ack()
     # obtenemos los datos del canal y del usuario y lo guardamos en una variable la cual se retornara para ser enviada al modelo IA
     information_options = handle_some_action_zero(
-        ack, body), handle_some_action_one(ack, body)
+        ack, body,client), handle_some_action_one(ack, body)
     user_info = client.users_info(user=information_options[1])
     real_name = user_info["user"]["real_name"]
     print(f"estoy imprimiendo: {real_name}")
     # obtenemos el id del usuario que ha enviado el formulario
     user_id = body["user"]["id"]
+    user_info_submit = client.users_info(user=user_id)
+    user_submit_real_name = user_info_submit["user"]["real_name"]
+    print(user_info_submit)
     option_one_blocks = [
         {
             "type": "section",
             "text": {
                 "type": "mrkdwn",
-                "text": f"Hola @{user_id}, te escribo con la respuesta a la solicitud que creaste. :hand:"
+                "text": f"Hola {user_submit_real_name}, te escribo con la respuesta a la solicitud que creaste. :hand:"
             }
         },
         {
@@ -759,17 +775,14 @@ def handle_view_submission_events_option_one(ack, body,client):
             }
         }
     ]
-    message = client.chat_postMessage(channel=user_id, blocks = option_one_blocks, as_user=True)
-    print(user_id)
-    return information_options, user_id , real_name, message
-    #return client.chat_postMessage(channel=user_id, blocks = option_one_blocks, as_user=True)
-    #return analyze_view_submission_information(information_options, user_id, real_name, client)
-       
-def analyze_view_submission_information(information_options, user_id, real_name, client):
-    # Realizar análisis y dar retroalimentación
-    response = openai_connection.chat_gpt("dame una lista de 10 animales herviboros")
-    return client.chat_postMessage(channel=user_id, text=response, as_user=True)
+    
+    # Enviar el mensaje y capturar el resultado de get_user_only_chanel()
+    response = get_user_only_chanel(information_options[1], information_options[0])
+    option_one_blocks[-1]["text"]["text"] = response  # Actualizar el bloque con el resultado
 
+    # Enviar el mensaje con los bloques actualizados
+    client.chat_postMessage(channel=user_id, text="hola", blocks=option_one_blocks, as_user=True)
+       
 
 @bolt_app.view("option_two")
 def handle_view_submission_events_option_two(ack, body,client):
@@ -782,54 +795,293 @@ def handle_view_submission_events_option_two(ack, body,client):
     print(f"estoy imprimiendo: {real_name_two}")
     # obtenemos el id del usuario que ha enviado el formulario
     user_id = body["user"]["id"]
+    user_info_submit_two = client.users_info(user=user_id)
+    user_submit_real_name_two = user_info_submit_two["user"]["real_name"]
     print(user_id)
-    return information_options_two, user_id , real_name_two
+    option_two_blocks = [
+		{
+			"type": "section",
+			"text": {
+				"type": "mrkdwn",
+				"text": f"Hola {user_submit_real_name_two}, te escribo con la respuesta a la solicitud que creeaste. :hand:"
+			}
+		},
+		{
+			"type": "divider"
+		},
+		{
+			"type": "section",
+			"text": {
+				"type": "mrkdwn",
+				"text": "Recuerda que seleccionaste la opcion: *Numero :two:*."
+			}
+		},
+		{
+			"type": "section",
+			"text": {
+				"type": "mrkdwn",
+				"text": "En esta respuesta, podras obtener un resumen de los sentimientos de un usuario en todos los canales *se tendran en cuenta todos los mensajes que el usuario haya enviado*."
+			}
+		},
+		{
+			"type": "divider"
+		},
+		{
+			"type": "header",
+			"text": {
+				"type": "plain_text",
+				"text": "En base a tu seleccion se obtuvo:"
+			}
+		},
+		{
+			"type": "section",
+			"text": {
+				"type": "plain_text",
+				"text": "aqui va llamada la respuesta de CHatgpt y la IA."
+			}
+		}
+	]
+    print(f"Usuario seleccionado: {information_options_two}")
+    response = get_user_all_channels(information_options_two)
+    option_two_blocks[-1]["text"]["text"] = response  # Actualizar el bloque con el resultado
+
+    # Enviar el mensaje con los bloques actualizados
+    client.chat_postMessage(channel=user_id, text="hola", blocks=option_two_blocks, as_user=True)
 
 
 @bolt_app.view("option_three")
-def handle_view_submission_events_option_three(ack, body):
+def handle_view_submission_events_option_three(ack, body,client):
     ack()
     option = 3
     # obtenemos el id del usuario que ha enviado el formulario
     user_id = body["user"]["id"]
+    user_info_submit_three = client.users_info(user=user_id)
+    user_submit_real_name_three = user_info_submit_three["user"]["real_name"]
     print(user_id)
-    return option, user_id
+    option_three_blocks = [
+		{
+			"type": "section",
+			"text": {
+				"type": "mrkdwn",
+				"text": f"Hola {user_submit_real_name_three}, te escribo con la respuesta a la solicitud que creeaste. :hand:"
+			}
+		},
+		{
+			"type": "divider"
+		},
+		{
+			"type": "section",
+			"text": {
+				"type": "mrkdwn",
+				"text": "Recuerda que seleccionaste la opcion: *Numero :three:*."
+			}
+		},
+		{
+			"type": "section",
+			"text": {
+				"type": "mrkdwn",
+				"text": "En esta respuesta, podras obtener un *resumen de los sentimientos de todos los canales en general*."
+			}
+		},
+		{
+			"type": "divider"
+		},
+		{
+			"type": "header",
+			"text": {
+				"type": "plain_text",
+				"text": "En base a tu seleccion se obtuvo:"
+			}
+		},
+		{
+			"type": "section",
+			"text": {
+				"type": "plain_text",
+				"text": ""
+			}
+		}
+	]
+
+    response = get_sentiment_all_channel()
+    option_three_blocks[-1]["text"]["text"] = response 
+    client.chat_postMessage(channel=user_id, text="hola", blocks=option_three_blocks, as_user=True)
 
 @bolt_app.view("option_four")
-def handle_view_submission_events_option_four(ack, body):
+def handle_view_submission_events_option_four(ack, body,client):
     ack()
-    information_options_four = handle_some_action_option_four(ack, body)
+    information_options_four = handle_some_action_option_four(ack, body,client)
     print(f'Canal seleccionado: {information_options_four}')
     # obtenemos el id del usuario que ha enviado el formulario
     user_id = body["user"]["id"]
+    user_info_submit_four = client.users_info(user=user_id)
+    user_submit_real_name_four = user_info_submit_four["user"]["real_name"]
     print(user_id)
-    return information_options_four, user_id
+    option_four_blocks = [
+		{
+			"type": "section",
+			"text": {
+				"type": "mrkdwn",
+				"text": f"Hola {user_submit_real_name_four}, te escribo con la respuesta a la solicitud que creeaste. :hand:"
+			}
+		},
+		{
+			"type": "divider"
+		},
+		{
+			"type": "section",
+			"text": {
+				"type": "mrkdwn",
+				"text": "Recuerda que seleccionaste la opcion: *Numero :four:*."
+			}
+		},
+		{
+			"type": "section",
+			"text": {
+				"type": "mrkdwn",
+				"text": "En esta respuesta, podras obtener un *resumen general de los sentimientos de un canal en especifico*."
+			}
+		},
+		{
+			"type": "divider"
+		},
+		{
+			"type": "header",
+			"text": {
+				"type": "plain_text",
+				"text": "En base a tu seleccion se obtuvo:"
+			}
+		},
+		{
+			"type": "section",
+			"text": {
+				"type": "plain_text",
+				"text": "" 
+			}
+		}
+	]
+
+    response = get_sentiment_one_channel(information_options_four)
+    option_four_blocks[-1]["text"]["text"] = response 
+    client.chat_postMessage(channel=user_id, text="hola", blocks=option_four_blocks, as_user=True)
+    
 
 @bolt_app.view("option_five")
-def handle_view_submission_events_option_five(ack, body):
+def handle_view_submission_events_option_five(ack, body,client):
     ack()
-    information_options_five = handle_some_action_option_five(ack, body)
+    information_options_five = handle_some_action_option_five(ack, body,client)
     print(f'Canal seleccionado: {information_options_five}')
     # obtenemos el id del usuario que ha enviado el formulario
     user_id = body["user"]["id"]
+    user_info_submit_five = client.users_info(user=user_id)
+    user_submit_real_name_five = user_info_submit_five["user"]["real_name"]
+    
     print(user_id)
-    return information_options_five, user_id
+    option_five_blocks = [
+		{
+			"type": "section",
+			"text": {
+				"type": "mrkdwn",
+				"text": f"Hola {user_submit_real_name_five}, te escribo con la respuesta a la solicitud que creeaste. :hand:"
+			}
+		},
+		{
+			"type": "divider"
+		},
+		{
+			"type": "section",
+			"text": {
+				"type": "mrkdwn",
+				"text": "Recuerda que seleccionaste la opcion: *Numero :five:*."
+			}
+		},
+		{
+			"type": "section",
+			"text": {
+				"type": "mrkdwn",
+				"text": "En esta respuesta, podras obtener *Top(5) sentimientos mas manejados en cierto canal, por todos los usuarios*."
+			}
+		},
+		{
+			"type": "divider"
+		},
+		{
+			"type": "header",
+			"text": {
+				"type": "plain_text",
+				"text": "En base a tu seleccion se obtuvo:"
+			}
+		},
+		{
+			"type": "section",
+			"text": {
+				"type": "plain_text",
+				"text": ""
+			}
+		}
+	]
+
+    response = get_top_5_sentiment_one_channel(information_options_five)
+    option_five_blocks[-1]["text"]["text"] = response 
+    client.chat_postMessage(channel=user_id, text="hola", blocks=option_five_blocks, as_user=True)
 errors = {}
 @bolt_app.view("option_six")
 def handle_view_submission_events_option_six(ack, body, client):
     ack()
-    information_options_six = handle_some_action_option_six(ack, body), handle_some_action_option_six_label(ack, body, client)
+    information_options_six = handle_some_action_option_six(ack, body,client), handle_some_action_option_six_label(ack, body, client)
     print(information_options_six)
+    count = information_options_six[1]
     # obtenemos el id del usuario que ha enviado el formulario
-    user_id = body["user"]["id"]        
-    # retorna el canal seleccionado y el numero de mensajes a analizar en la variable information_options_six
+    user_id = body["user"]["id"]
+    user_info_submit_six = client.users_info(user=user_id)
+    user_submit_real_name_six = user_info_submit_six["user"]["real_name"]        
+    option_six_blocks = [
+		{
+			"type": "section",
+			"text": {
+				"type": "mrkdwn",
+				"text": f"Hola {user_submit_real_name_six}, te escribo con la respuesta a la solicitud que creeaste. :hand:"
+			}
+		},
+		{
+			"type": "divider"
+		},
+		{
+			"type": "section",
+			"text": {
+				"type": "mrkdwn",
+				"text": "Recuerda que seleccionaste la opcion: *Numero :six:*."
+			}
+		},
+		{
+			"type": "section",
+			"text": {
+				"type": "mrkdwn",
+				"text": f"En esta respuesta, podras obtener un *resumen de cierta cantidad de mensajes {count} en cierto canal, para darte un contexto de lo que hablan los usuarios.*"
+			}
+		},
+		{
+			"type": "divider"
+		},
+		{
+			"type": "header",
+			"text": {
+				"type": "plain_text",
+				"text": "En base a tu seleccion se obtuvo:"
+			}
+		},
+		{
+			"type": "section",
+			"text": {
+				"type": "plain_text",
+				"text": ""
+			}
+		}
+	]
+
     # y el id del usuario que ha enviado el formulario
-    return information_options_six, user_id 
-
-
-################################################################################
-# global variables responsive  --------------------------------------------------------
-################################################################################
+    response = get_resume_conversation(information_options_six[0], information_options_six[1])
+    option_six_blocks[-1]["text"]["text"] = response 
+    client.chat_postMessage(channel=user_id, text="hola", blocks=option_six_blocks, as_user=True)
 
 ################################################################################
 # flask bolt_app --------------------------------------------------------------------
@@ -872,9 +1124,10 @@ def oauth_redirect():
 def chatgpt():
     return handler.handle(request)
 
-@flask_app.route("/test", methods=["GET"])
+@app.route("/test", methods=["GET"])
 def test_endpoint():
     return "This is a test endpoint"
 
 if "__main__" == __name__:
-    app.run(port=3000, host="0.0.0.0")
+    app.run(debug=True)
+    #app.run(port=3000, host="0.0.0.0")
