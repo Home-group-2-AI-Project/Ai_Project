@@ -10,10 +10,12 @@ from dotenv import load_dotenv
 
 from slack_bolt import App
 from slack_bolt.adapter.flask import SlackRequestHandler
-from slack_bolt.oauth.oauth_settings import OAuthSettings
 
+
+from slack_bolt.oauth.oauth_settings import OAuthSettings
 from slack_sdk.oauth.installation_store.file import FileInstallationStore
 from slack_sdk.oauth.state_store.file import FileOAuthStateStore
+
 
 from flask import Flask, request
 
@@ -54,6 +56,7 @@ oauth_settings = OAuthSettings(
 )
 
 bolt_app = App(
+    token=SLACK_BOT_TOKEN,
     signing_secret=SLACK_SIGNING_SECRET,
     oauth_settings=oauth_settings
 )
@@ -69,11 +72,15 @@ model = Model()
 
 
 @bolt_app.event("message")
-def handle_message(event, say):
+def handle_message(event, say,logger):
+    print(f"este el login {logger}")
     channel_id = event["channel"]
     user_id = event["user"]
-    user_name = bolt_app.client.users_info(user=user_id)
-    display_name_normalized = user_name["user"]["real_name"]
+    #print(bolt_app.client.users_info(user='user_id'))
+    #user_name = bolt_app.client.users_info(user=user_id)
+    #display_name_normalized = user_name["user"]["real_name"] 
+    team_id = event["team"]
+    print(f"team_id: {team_id}")
     text = event["text"]
     ts = event["event_ts"]
     text = emoji.demojize(text)
@@ -84,15 +91,17 @@ def handle_message(event, say):
     if bolt_app.client.auth_test()["user_id"] != user_id:
         print(f'in channel {channel_id}')
         print(f'user {user_id} said: {text}')
-        print(f'probando esto: {display_name_normalized}')
+        #print(event)
+        #print(bolt_app.client.conversations_list(types="public_channel",team_id=team_id))
+        #print(f'probando esto: {display_name_normalized}')
         try:
             directory = 'app/slack_utils/data_messages'
             if not os.path.exists(directory):
                 os.makedirs(directory)
             channel_info = bolt_app.client.conversations_info(
-                channel=channel_id)
+                channel="channel_id")
             channel_name = channel_info["channel"]["name"]
-            csv_file_path = f'app/slack_config/data_messages/channel_{channel_name}_messages.csv'
+            csv_file_path = f'app/slack_config/data_messages/{team_id}_channel_{channel_name}_messages.csv'
             existing_data = pd.read_csv(csv_file_path)
             if ('subtype' not in event or event['subtype'] != 'channel_join') and 'bot_id' not in event:
                 channel_info = bolt_app.client.conversations_info(
@@ -129,7 +138,7 @@ def handle_message(event, say):
                             channel=channel_id)
                         channel_name = channel_info["channel"]["name"]
                         mensajes.append(
-                            {'channel': channel_id, 'user': user, 'text': text, 'ts': ts})
+                            {'channel': channel_name, 'user': user, 'text': text, 'ts': ts})
                         # print("pase por aqui")
                     else:
                         print("Mensaje no contiene información de usuario:", mensaje)
@@ -147,7 +156,7 @@ def handle_message(event, say):
 
                 df = pd.DataFrame(mensajes)
                 df.to_csv(
-                    f'app/slack_config/data_messages/channel_{channel_name}_messages.csv', index=False)
+                    f'app/slack_config/data_messages/{team_id}_channel_{channel_name}_messages.csv', index=False)
             else:
                 print(
                     f"Error getting messages for channel {channel_id}: {result['error']}")
@@ -661,6 +670,7 @@ def static_select(ack, body, client):
 @bolt_app.action("actionId-0")
 def handle_some_action_zero(ack, body, client):
     ack()
+    print(body)
     # canal que el usuario ha seleccionado
     selected_channel = body["view"]["state"]["values"]["Z7U2a"]["actionId-0"]["selected_channel"]
     channel_info = client.conversations_info(channel=selected_channel)
@@ -771,7 +781,8 @@ def handle_view_submission_events_option_one(ack, body, client):
     user_id = body["user"]["id"]
     user_info_submit = client.users_info(user=user_id)
     user_submit_real_name = user_info_submit["user"]["real_name"]
-    print(user_info_submit)
+    team_id = body["user"]["team_id"]
+    print(team_id)
     option_one_blocks = [
         {
             "type": "section",
@@ -818,7 +829,7 @@ def handle_view_submission_events_option_one(ack, body, client):
 
     # Enviar el mensaje y capturar el resultado de get_user_only_chanel()
     response = get_user_only_chanel(
-        information_options[1], information_options[0])
+        information_options[1], information_options[0],team_id)
     # Actualizar el bloque con el resultado
     option_one_blocks[-1]["text"]["text"] = response
 
@@ -838,6 +849,7 @@ def handle_view_submission_events_option_two(ack, body, client):
     print(f"estoy imprimiendo: {real_name_two}")
     # obtenemos el id del usuario que ha enviado el formulario
     user_id = body["user"]["id"]
+    team_id = body["user"]["team_id"]
     user_info_submit_two = client.users_info(user=user_id)
     user_submit_real_name_two = user_info_submit_two["user"]["real_name"]
     print(user_id)
@@ -885,7 +897,7 @@ def handle_view_submission_events_option_two(ack, body, client):
         }
     ]
     print(f"Usuario seleccionado: {information_options_two}")
-    response = get_user_all_channels(information_options_two)
+    response = get_user_all_channels(information_options_two,team_id)
     # Actualizar el bloque con el resultado
     option_two_blocks[-1]["text"]["text"] = response
 
@@ -898,6 +910,7 @@ def handle_view_submission_events_option_two(ack, body, client):
 def handle_view_submission_events_option_three(ack, body, client):
     ack()
     option = 3
+    team_id = body["user"]["team_id"]
     # obtenemos el id del usuario que ha enviado el formulario
     user_id = body["user"]["id"]
     user_info_submit_three = client.users_info(user=user_id)
@@ -947,7 +960,7 @@ def handle_view_submission_events_option_three(ack, body, client):
         }
     ]
 
-    response = get_sentiment_all_channel()
+    response = get_sentiment_all_channel(team_id)
     option_three_blocks[-1]["text"]["text"] = response
     client.chat_postMessage(channel=user_id, text="hola",
                             blocks=option_three_blocks, as_user=True)
@@ -956,6 +969,7 @@ def handle_view_submission_events_option_three(ack, body, client):
 @bolt_app.view("option_four")
 def handle_view_submission_events_option_four(ack, body, client):
     ack()
+    team_id = body["user"]["team_id"]
     information_options_four = handle_some_action_option_four(
         ack, body, client)
     print(f'Canal seleccionado: {information_options_four}')
@@ -1008,7 +1022,7 @@ def handle_view_submission_events_option_four(ack, body, client):
         }
     ]
 
-    response = get_sentiment_one_channel(information_options_four)
+    response = get_sentiment_one_channel(information_options_four,team_id)
     option_four_blocks[-1]["text"]["text"] = response
     client.chat_postMessage(channel=user_id, text="hola",
                             blocks=option_four_blocks, as_user=True)
@@ -1017,6 +1031,7 @@ def handle_view_submission_events_option_four(ack, body, client):
 @bolt_app.view("option_five")
 def handle_view_submission_events_option_five(ack, body, client):
     ack()
+    team_id = body["user"]["team_id"]
     information_options_five = handle_some_action_option_five(
         ack, body, client)
     print(f'Canal seleccionado: {information_options_five}')
@@ -1070,7 +1085,7 @@ def handle_view_submission_events_option_five(ack, body, client):
         }
     ]
 
-    response = get_top_5_sentiment_one_channel(information_options_five)
+    response = get_top_5_sentiment_one_channel(information_options_five,team_id)
     option_five_blocks[-1]["text"]["text"] = response
     client.chat_postMessage(channel=user_id, text="hola",
                             blocks=option_five_blocks, as_user=True)
@@ -1082,6 +1097,7 @@ errors = {}
 @bolt_app.view("option_six")
 def handle_view_submission_events_option_six(ack, body, client):
     ack()
+    team_id = body["user"]["team_id"]
     information_options_six = handle_some_action_option_six(
         ack, body, client), handle_some_action_option_six_label(ack, body, client)
     print(information_options_six)
@@ -1136,7 +1152,7 @@ def handle_view_submission_events_option_six(ack, body, client):
 
     # y el id del usuario que ha enviado el formulario
     response = get_resume_conversation(
-        information_options_six[0], information_options_six[1])
+        information_options_six[0], information_options_six[1],team_id)
     option_six_blocks[-1]["text"]["text"] = response
     client.chat_postMessage(channel=user_id, text="hola",
                             blocks=option_six_blocks, as_user=True)
@@ -1191,5 +1207,5 @@ def test_endpoint():
 
 
 if "__main__" == __name__:
-    # app.run(debug=True)
+    #app.run(debug=True)
     app.run(port=3000, host="0.0.0.0")
