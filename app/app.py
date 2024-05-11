@@ -12,7 +12,6 @@ from slack_bolt import App
 from slack_bolt.adapter.flask import SlackRequestHandler
 
 
-from slack_bolt.oauth.oauth_settings import OAuthSettings
 from slack_sdk.oauth.installation_store.file import FileInstallationStore
 from slack_sdk.oauth.state_store.file import FileOAuthStateStore
 
@@ -39,26 +38,13 @@ CLIENT_ID = os.environ.get("CLIENT_ID")
 CLIENT_SECRET = os.environ.get("CLIENT_SECRET")
 
 # oauth settings with all required parameters
-oauth_settings = OAuthSettings(
-    client_id=CLIENT_ID,
-    client_secret=CLIENT_SECRET,
-    scopes=["app_mentions:read", "channels:history", "channels:read",
-            "chat:write", "chat:write.customize", "chat:write.public",
-            "commands", "groups:history", "metadata.message:read",
-            "team:read", "users:read"],
-    redirect_uri=None,
-    redirect_uri_path="/slack/oauth_redirect",
-    install_page_rendering_enabled=False,
-    install_path="/slack/install",
-    installation_store=FileInstallationStore(base_dir="./data/installations"),
-    state_store=FileOAuthStateStore(
-        expiration_seconds=600, base_dir="./data/states")
-)
+
 
 bolt_app = App(
     token=SLACK_BOT_TOKEN,
     signing_secret=SLACK_SIGNING_SECRET,
-    oauth_settings=oauth_settings
+    
+    
 )
 
 openai_connection = OpenAIConnection()
@@ -364,7 +350,7 @@ def command_chat_gpt(ack, say, command):
 @bolt_app.command("/sentiment")
 def command_sentimientos(ack, command, client):
     ack()
-    texts = command['text']
+    texts = "Hola, soy un bot de análisis de sentimientos, para poder ayudarte necesito que te dirigas a la parte inferior izquierda de tu slack en donde encontraras las posibles opciones que puedo ofrecerte."
     print(f"Received a message from user {texts}")
     return client.chat_postMessage(channel=command['channel_id'], text=texts, as_user=True)
 
