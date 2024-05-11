@@ -77,13 +77,13 @@ def get_resume_conversation(channel_name, countMessages,team_id):
 
 def get_menssages_only_chanel(channel_name,team_id):
     current_dir = os.path.dirname(os.path.abspath(__file__))
-    csv_path = os.path.join(current_dir, f'../slack_config/Data_messages/{team_id}_channel_{channel_name}_messages.csv')
+    csv_path = os.path.join(current_dir, f'../slack_config/data_messages/{team_id}_channel_{channel_name}_messages.csv')
     df = pd.read_csv(csv_path)
     return (df)
 
 def get_all_channel(team_id):
     current_dir = os.path.dirname(os.path.abspath(__file__))
-    csv_path = os.path.join(current_dir, f'../slack_config/Data_messages')
+    csv_path = os.path.join(current_dir, f'../slack_config/data_messages')
     channel_names = [name.replace('channel_', '').replace('_messages.csv', '') for name in os.listdir(csv_path) if name.endswith('_messages.csv') and not name.endswith('.gitkeep_messages.csv')]
     
     all_messages = pd.DataFrame()
