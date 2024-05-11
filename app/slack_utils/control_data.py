@@ -84,7 +84,7 @@ def get_menssages_only_chanel(channel_name,team_id):
 def get_all_channel(team_id):
     current_dir = os.path.dirname(os.path.abspath(__file__))
     csv_path = os.path.join(current_dir, f'../slack_config/data_messages')
-    channel_names = [name.replace('channel_', '').replace('_messages.csv', '') for name in os.listdir(csv_path) if name.endswith('_messages.csv') and not name.endswith('.gitkeep_messages.csv')]
+    channel_names = [name.replace(f'{team_id}_', '').replace('channel_', '').replace('_messages.csv', '') for name in os.listdir(csv_path) if name.endswith('_messages.csv') and not name.endswith('.gitkeep_messages.csv')]
     
     all_messages = pd.DataFrame()
     for channel_name in channel_names:
