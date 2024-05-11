@@ -81,7 +81,9 @@ def handle_message(event, say,logger):
         #print(bolt_app.client.conversations_list(types="public_channel",team_id=team_id))
         #print(f'probando esto: {display_name_normalized}')
         try:
-            directory = 'app/slack_config/data_messages'
+            current_dir = os.path.dirname(os.path.abspath(__file__))  
+            directory = os.path.join(current_dir, f'/slack_config/data_messages')        
+            #directory = 'app/slack_config/data_messages'
             if not os.path.exists(directory):
                 os.makedirs(directory)
             channel_info = bolt_app.client.conversations_info(
